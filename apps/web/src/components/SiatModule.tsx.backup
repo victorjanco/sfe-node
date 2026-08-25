@@ -1,0 +1,852 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { apiGet, apiPost, apiPut, apiDelete } from '../api/client';
+
+interface SyncResponse {
+  transaccion: boolean;
+  mensaje?: string;
+  codigos?: any[];
+  actividades?: any[];
+  productos?: any[];
+  leyendas?: any[];
+  mensajes?: { codigo?: string; descripcion?: string }[];
+}
+
+interface Cuis {
+  id: number;
+  code: string;
+  startDate: string;
+  effectiveDate: string;
+  transaction: boolean;
+  state: number;
+  pointSaleId: number;
+  branchOfficeId: number;
+  pointSale?: { pointSaleName: string };
+  branchOffice?: { name: string };
+}
+
+interface Cufd {
+  id: number;
+  code: string;
+  controlCode: string;
+  address: string;
+  startDate: string;
+  effectiveDate: string;
+  effectiveDate2: string;
+  effectiveDate3: string;
+  transaction: boolean;
+  state: number;
+  state2: number;
+  state3: number;
+  cuisId: number;
+  pointSaleId: number;
+  branchOfficeId: number;
+  cuis?: Cuis;
+  pointSale?: { pointSaleName: string };
+  branchOffice?: { name: string };
+}
+
+interface PointSale {
+  id: number;
+  pointSaleCode: number;
+  pointSaleName: string;
+  description?: string;
+  pointSaleTypeName: string;
+  state: number;
+  pointSaleTypeId?: number;
+  branchOfficeId: number;
+  branchOffice?: { name: string };
+}
+
+interface BranchOffice {
+  id: number;
+  name: string;
+  code: number;
+}
+
+interface PointSaleType {
+  id: number;
+  classifierCode: string;
+  description: string;
+}
+
+interface Company {
+  id: number;
+  name: string;
+  nameCompany: string;
+  nit: string;
+  environmentCode: number;
+  modalityCode: number;
+  systemCode: string;
+}
+
+export function SiatModule() {
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<'cuis' | 'cufd' | 'puntos-venta'>('cuis');
+  const [cuisList, setCuisList] = useState<Cuis[]>([]);
+  const [cufdList, setCufdList] = useState<Cufd[]>([]);
+  const [pointsSale, setPointsSale] = useState<PointSale[]>([]);
+  const [branches, setBranches] = useState<BranchOffice[]>([]);
+  const [pointSaleTypes, setPointSaleTypes] = useState<PointSaleType[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+const [formData, setFormData] = useState<{
+    // CUIS
+    code: string;
+    startDate: string;
+    effectiveDate: string;
+    pointSaleId: string;
+    branchOfficeId: string;
+    // CUFD
+    cuisId: string;
+    controlCode: string;
+    address: string;
+    effectiveDate2: string;
+    effectiveDate3: string;
+    // Point Sale
+    pointSaleCode: string;
+    pointSaleName: string;
+    pointSaleTypeId: string;
+    description: string;
+  }>({
+    // CUIS
+    code: '',
+    startDate: '',
+    effectiveDate: '',
+    pointSaleId: '',
+    branchOfficeId: '',
+    // CUFD
+    cuisId: '',
+    controlCode: '',
+    address: '',
+    effectiveDate2: '',
+    effectiveDate3: '',
+    // Point Sale
+    pointSaleCode: '0',
+    pointSaleName: '',
+    pointSaleTypeId: '',
+    description: '',
+  });
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'cuis') loadCuis();
+    else if (tab === 'cufd') loadCufd();
+    else if (tab === 'puntos-venta') loadPointsSale();
+  }, [tab]);
+
+  useEffect(() => {
+    const loadCompany = async () => {
+      try {
+        const data = await apiGet<Company>('/company/get_company');
+        setCompany(data);
+      } catch (err: any) {
+        console.error('Error loading company:', err);
+      }
+    };
+    loadCompany();
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      const [branchesData, typesData] = await Promise.all([
+        apiGet<BranchOffice[]>('/branch_office/get_list_enabled'),
+        apiGet<PointSaleType[]>('/catalog/point_sale_type/get_list_enabled'),
+      ]);
+      setBranches(branchesData);
+      setPointSaleTypes(typesData);
+    } catch (err: any) {
+      setError('Error al cargar datos iniciales');
+    }
+  };
+
+  const loadCuis = async () => {
+    setLoading(true);
+    try {
+      const data = await apiGet<Cuis[]>('/catalog/cuis/get_list_enabled');
+      setCuisList(data);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar CUIS');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCufd = async () => {
+    setLoading(true);
+    try {
+      const data = await apiGet<Cufd[]>('/catalog/cufd/get_list_enabled');
+      setCufdList(data);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar CUFD');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPointsSale = async () => {
+    setLoading(true);
+    try {
+      const data = await apiGet<PointSale[]>('/catalog/point_sale/get_list_enabled');
+      setPointsSale(data);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar Puntos de Venta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openCreateModal = (type: string) => {
+    setModalMode('create');
+    setEditingItem(null);
+    setFormData({
+      code: '',
+      startDate: new Date().toISOString().split('T')[0],
+      effectiveDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      pointSaleId: '',
+      branchOfficeId: String(branches[0]?.id || ''),
+      cuisId: '',
+      controlCode: '',
+      address: (branches[0] as any)?.address || '',
+      effectiveDate2: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      effectiveDate3: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString().split('T')[0],
+      pointSaleCode: '0',
+      pointSaleName: '',
+      pointSaleTypeId: String(pointSaleTypes[0]?.id || ''),
+      description: '',
+    });
+    setShowModal(true);
+  };
+
+  const openEditModal = (item: any) => {
+    setModalMode('edit');
+    setEditingItem(item);
+    if (tab === 'cuis') {
+      setFormData({
+        code: item.code,
+        startDate: item.startDate?.split('T')[0] || '',
+        effectiveDate: item.effectiveDate?.split('T')[0] || '',
+        pointSaleId: item.pointSaleId || '',
+        branchOfficeId: item.branchOfficeId || '',
+        cuisId: '',
+        controlCode: '',
+        address: '',
+        effectiveDate2: '',
+        effectiveDate3: '',
+        pointSaleCode: '0',
+        pointSaleName: '',
+        pointSaleTypeId: '',
+        description: '',
+      });
+    } else if (tab === 'cufd') {
+      setFormData({
+        code: item.code,
+        startDate: item.startDate?.split('T')[0] || '',
+        effectiveDate: item.effectiveDate?.split('T')[0] || '',
+        effectiveDate2: item.effectiveDate2?.split('T')[0] || '',
+        effectiveDate3: item.effectiveDate3?.split('T')[0] || '',
+        controlCode: item.controlCode,
+        address: item.address,
+        cuisId: item.cuisId || '',
+        pointSaleId: item.pointSaleId || '',
+        branchOfficeId: item.branchOfficeId || '',
+        pointSaleCode: '0',
+        pointSaleName: '',
+        pointSaleTypeId: '',
+        description: '',
+      });
+    } else if (tab === 'puntos-venta') {
+      setFormData({
+        pointSaleCode: item.pointSaleCode,
+        pointSaleName: item.pointSaleName,
+        pointSaleTypeId: item.pointSaleTypeId || '',
+        description: item.description || '',
+        branchOfficeId: item.branchOfficeId || '',
+        pointSaleId: '', // Add required field
+        code: '',
+        startDate: '',
+        effectiveDate: '',
+        effectiveDate2: '',
+        effectiveDate3: '',
+        controlCode: '',
+        address: '',
+        cuisId: '',
+      });
+    }
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      if (tab === 'cuis') {
+        if (modalMode === 'create') {
+          await apiPost('/siat/cuis', {
+            ...formData,
+            pointSaleId: Number(formData.pointSaleId),
+            branchOfficeId: Number(formData.branchOfficeId),
+          });
+        } else {
+          await apiPut(`/siat/cuis/${editingItem.id}`, {
+            ...formData,
+            pointSaleId: Number(formData.pointSaleId),
+            branchOfficeId: Number(formData.branchOfficeId),
+          });
+        }
+        loadCuis();
+      } else if (tab === 'cufd') {
+        if (modalMode === 'create') {
+          await apiPost('/siat/cufd', {
+            ...formData,
+            cuisId: Number(formData.cuisId),
+            pointSaleId: Number(formData.pointSaleId),
+            branchOfficeId: Number(formData.branchOfficeId),
+          });
+        } else {
+          await apiPut(`/siat/cufd/${editingItem.id}`, {
+            ...formData,
+            cuisId: Number(formData.cuisId),
+            pointSaleId: Number(formData.pointSaleId),
+            branchOfficeId: Number(formData.branchOfficeId),
+          });
+        }
+        loadCufd();
+      } else if (tab === 'puntos-venta') {
+        if (modalMode === 'create') {
+          await apiPost('/catalog/point_sale/store', {
+            ...formData,
+            pointSaleCode: Number(formData.pointSaleCode),
+            pointSaleTypeId: Number(formData.pointSaleTypeId),
+            branchOfficeId: Number(formData.branchOfficeId),
+            state: 1,
+          });
+        } else {
+          await apiPut(`/catalog/point_sale/update`, {
+            ...formData,
+            id: editingItem.id,
+            pointSaleCode: Number(formData.pointSaleCode),
+            pointSaleTypeId: Number(formData.pointSaleTypeId),
+            branchOfficeId: Number(formData.branchOfficeId),
+          });
+        }
+        loadPointsSale();
+      }
+      setShowModal(false);
+    } catch (err: any) {
+      setError(err.message || 'Error al guardar');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('¿Eliminar este registro?')) return;
+    try {
+      if (tab === 'cuis') {
+        await apiDelete(`/siat/cuis/${id}`);
+        loadCuis();
+      } else if (tab === 'cufd') {
+        await apiDelete(`/siat/cufd/${id}`);
+        loadCufd();
+      } else if (tab === 'puntos-venta') {
+        await apiDelete(`/catalog/point_sale/${id}`);
+        loadPointsSale();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error al eliminar');
+    }
+  };
+
+  const handleSincronizarCuis = async () => {
+    try {
+      await apiGet('/siat/sincronizar_actividades');
+      loadCuis();
+    } catch (err: any) {
+      setError(err.message || 'Error al sincronizar CUIS');
+    }
+  };
+
+  const handleSincronizarCufd = async () => {
+    try {
+      await apiGet('/siat/sincronizar_productos');
+      loadCufd();
+    } catch (err: any) {
+      setError(err.message || 'Error al sincronizar CUFD');
+    }
+  };
+
+const handleSincronizarPuntosVenta = async () => {
+    try {
+      setLoading(true);
+      const res = await apiGet<SyncResponse>('/siat/sincronizar_puntos_venta');
+      alert(res.transaccion ? 'Puntos de venta sincronizados' : `Error: ${res.mensajes?.[0]?.descripcion || 'Desconocido'}`);
+      loadPointsSale();
+    } catch (err: any) {
+      setError(err.message || 'Error al sincronizar puntos de venta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+const handleVerificarComunicacion = async () => {
+  try {
+    const res = await apiGet<SyncResponse>('/siat/verificar_comunicacion');
+    alert(`Comunicación: ${res.mensaje || (res.transaccion ? 'EXITOSA' : 'FALLIDA')}`);
+  } catch (err: any) {
+    setError(err.message || 'Error al verificar comunicación');
+  }
+};
+
+const handleSincronizarTodo = async () => {
+  try {
+    setLoading(true);
+    const res = await apiGet<SyncResponse>('/siat/sincronizar_parametros_siat');
+    alert(res.mensaje || (res.transaccion ? 'Sincronización completa exitosa' : 'Error en sincronización'));
+    loadCuis();
+    loadCufd();
+    loadPointsSale();
+  } catch (err: any) {
+    setError(err.message || 'Error en sincronización completa');
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const handleSincronizarTipoDocumentoSector = async () => {
+    try {
+      setLoading(true);
+      const res = await apiGet<SyncResponse>('/siat/sincronizar_tipo_documento_sector');
+      alert(res.transaccion ? 'Tipos de documento sector sincronizados' : `Error: ${res.mensajes?.[0]?.descripcion || 'Desconocido'}`);
+    } catch (err: any) {
+      setError(err.message || 'Error al sincronizar tipo documento sector');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSincronizarActividadesDocumentoSector = async () => {
+    try {
+      setLoading(true);
+      const res = await apiGet<SyncResponse>('/siat/sincronizar_actividades_documento_sector');
+      alert(res.transaccion ? 'Actividades documento sector sincronizadas' : `Error: ${res.mensajes?.[0]?.descripcion || 'Desconocido'}`);
+    } catch (err: any) {
+      setError(err.message || 'Error al sincronizar actividades documento sector');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSincronizarLeyendasFactura = async () => {
+    try {
+      setLoading(true);
+      const res = await apiGet<SyncResponse>('/siat/sincronizar_leyendas_factura');
+      alert(res.transaccion ? 'Leyendas factura sincronizadas' : `Error: ${res.mensajes?.[0]?.descripcion || 'Desconocido'}`);
+    } catch (err: any) {
+      setError(err.message || 'Error al sincronizar leyendas factura');
+    } finally {
+      setLoading(false);
+    }
+  };
+  try {
+    setLoading(true);
+    const calls = [
+      { label: 'Tipos Factura', url: '/siat/sincronizar_tipos_factura' },
+      { label: 'Motivo Anulación', url: '/siat/sincronizar_motivo_anulacion' },
+      { label: 'Tipo Método Pago', url: '/siat/sincronizar_tipo_metodo_pago' },
+      { label: 'Tipo Moneda', url: '/siat/sincronizar_tipo_moneda' },
+      { label: 'Unidad Medida', url: '/siat/sincronizar_unidad_medida' },
+      { label: 'Tipo Doc. Identidad', url: '/siat/sincronizar_tipo_documento_identidad' },
+      { label: 'Tipo Punto Venta', url: '/siat/sincronizar_tipo_punto_venta' },
+      { label: 'Tipo Doc. Sector', url: '/siat/sincronizar_tipo_documento_sector' },
+      { label: 'Actividades Doc. Sector', url: '/siat/sincronizar_actividades_documento_sector' },
+      { label: 'Leyendas Factura', url: '/siat/sincronizar_leyendas_factura' },
+      { label: 'Eventos Significativos', url: '/siat/sincronizar_eventos_significativos' },
+      { label: 'Actividades', url: '/siat/sincronizar_actividades' },
+      { label: 'Productos/Servicios', url: '/siat/sincronizar_productos' },
+      { label: 'Tipo Doc. Sector', url: '/siat/sincronizar_tipo_documento_sector' },
+      { label: 'Actividades Doc. Sector', url: '/siat/sincronizar_actividades_documento_sector' },
+      { label: 'Leyendas Factura', url: '/siat/sincronizar_leyendas_factura' },
+    ];
+    for (const call of calls) {
+      const res = await apiGet<SyncResponse>(call.url);
+      if (!res.transaccion) {
+        alert(`${call.label}: ${res.mensajes?.[0]?.descripcion || 'Error'}`);
+      }
+    }
+    alert('Sincronización de parámetros completada');
+    loadCuis();
+    loadCufd();
+    loadPointsSale();
+  } catch (err: any) {
+    setError(err.message || 'Error al sincronizar parámetros');
+  } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+      <div className="card-header">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h3>Módulo SIAT</h3>
+            {company && (
+              <div className="company-info" style={{ marginTop: '8px', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e2e6ec' }}>
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                  <div>
+                    <strong>Empresa:</strong> {company.nameCompany}
+                  </div>
+                  <div>
+                    <strong>NIT:</strong> {company.nit}
+                  </div>
+                  <div>
+                    <strong>Ambiente:</strong> {company.environmentCode === 2 ? 'Piloto' : company.environmentCode === 1 ? 'Producción' : 'Desconocido'} (Código: {company.environmentCode})
+                  </div>
+                  <div>
+                    <strong>Modalidad:</strong> {company.modalityCode === 1 ? 'Electrónica en Línea' : company.modalityCode === 2 ? 'Computarizada en Línea' : 'Desconocida'} (Código: {company.modalityCode})
+                  </div>
+                  <div>
+                    <strong>Sistema:</strong> {company.systemCode}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary btn-sm" onClick={handleVerificarComunicacion}>
+            Verificar Comunicación
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarCuis} disabled={loading}>
+            Sincronizar CUIS
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarCufd} disabled={loading}>
+            Sincronizar CUFD
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={handleSincronizarTodo} disabled={loading}>
+            Sincronizar Todo
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarActividades} disabled={loading}>
+            Sinc. Actividades
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarProductos} disabled={loading}>
+            Sinc. Productos
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarPuntosVenta} disabled={loading}>
+            Sinc. Puntos Venta
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarTipoDocumentoSector} disabled={loading}>
+            Sinc. Tipo Doc. Sector
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarActividadesDocumentoSector} disabled={loading}>
+            Sinc. Actividades Doc. Sector
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarLeyendasFactura} disabled={loading}>
+            Sinc. Leyendas Factura
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarParametricas} disabled={loading}>
+            Sinc. Parámetros
+          </button>
+        </div>
+      </div>
+    </div>
+      <div className="card-body">
+        {error && <div className="error-text">{error}</div>}
+
+        <div className="tabs" style={{ marginBottom: '16px' }}>
+          <button className={`tab ${tab === 'cuis' ? 'active' : ''}`} onClick={() => setTab('cuis')}>
+            CUIS
+          </button>
+          <button className={`tab ${tab === 'cufd' ? 'active' : ''}`} onClick={() => setTab('cufd')}>
+            CUFD
+          </button>
+          <button className={`tab ${tab === 'puntos-venta' ? 'active' : ''}`} onClick={() => setTab('puntos-venta')}>
+            Puntos de Venta
+          </button>
+        </div>
+
+{tab === 'cuis' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h4>CUIS (Código Único de Identificación del Sistema)</h4>
+              <button className="btn btn-primary btn-sm" onClick={() => openCreateModal('cuis')}>
+                Nuevo CUIS
+              </button>
+            </div>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Punto de Venta</th>
+                    <th>Sucursal</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fecha Vigencia</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cuisList.map(item => (
+                    <tr key={item.id}>
+                      <td>{item.id}</td>
+                      <td><code>{item.code}</code></td>
+                      <td>{item.pointSale?.pointSaleName || item.pointSaleId}</td>
+                      <td>{item.branchOffice?.name || item.pointSaleId}</td>
+                      <td>{item.startDate?.split('T')[0]}</td>
+                      <td>{item.effectiveDate?.split('T')[0]}</td>
+                      <td>
+                        <span className={`badge ${item.transaction ? 'badge-success' : 'badge-neutral'}`}>
+                          {item.transaction ? 'Vigente' : 'No vigente'}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(item)}>Editar</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item.id)}>Eliminar</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {tab === 'cufd' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h4>CUFD (Código Único de Facturación Diaria)</h4>
+              <button className="btn btn-primary btn-sm" onClick={() => openCreateModal('cufd')}>
+                Nuevo CUFD
+              </button>
+            </div>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Código Control</th>
+                    <th>CUIS</th>
+                    <th>Punto de Venta</th>
+                    <th>Sucursal</th>
+                    <th>Fecha Inicio</th>
+                    <th>Vigencia 1</th>
+                    <th>Vigencia 2</th>
+                    <th>Vigencia 3</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cufdList.map(item => (
+                    <tr key={item.id}>
+                      <td>{item.id}</td>
+                      <td><code>{item.code}</code></td>
+                      <td><code>{item.controlCode}</code></td>
+                      <td>{item.cuis?.code || item.cuisId}</td>
+                      <td>{item.pointSale?.pointSaleName || item.pointSaleId}</td>
+                      <td>{item.branchOffice?.name || item.branchOfficeId}</td>
+                      <td>{item.startDate?.split('T')[0]}</td>
+                      <td>{item.effectiveDate?.split('T')[0]}</td>
+                      <td>{item.effectiveDate2?.split('T')[0]}</td>
+                      <td>{item.effectiveDate3?.split('T')[0]}</td>
+                      <td>
+                        <span className={`badge ${item.transaction ? 'badge-success' : 'badge-neutral'}`}>
+                          {item.transaction ? 'Vigente' : 'No vigente'}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(item)}>Editar</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item.id)}>Eliminar</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {tab === 'puntos-venta' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h4>Puntos de Venta</h4>
+              <button className="btn btn-primary btn-sm" onClick={() => openCreateModal('puntos-venta')}>
+                Nuevo Punto de Venta
+              </button>
+            </div>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Sucursal</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pointsSale.map(item => (
+                    <tr key={item.id}>
+                      <td>{item.id}</td>
+                      <td>{item.pointSaleCode}</td>
+                      <td>{item.pointSaleName}</td>
+                      <td>{item.pointSaleTypeName}</td>
+                      <td>{item.branchOffice?.name || item.branchOfficeId}</td>
+                      <td>{item.description || '-'}</td>
+                      <td>
+                        <span className={`badge ${item.state === 1 ? 'badge-success' : 'badge-neutral'}`}>
+                          {item.state === 1 ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(item)}>Editar</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item.id)}>Eliminar</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* Modal */}
+        {showModal && (
+          <div className="modal-overlay" onClick={() => setShowModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h4>{modalMode === 'create' ? 'Crear' : 'Editar'} {tab === 'cuis' ? 'CUIS' : tab === 'cufd' ? 'CUFD' : 'Punto de Venta'}</h4>
+                <button className="btn-close" onClick={() => setShowModal(false)}>&times;</button>
+              </div>
+              <form onSubmit={handleSubmit}>
+                <div className="modal-body">
+                  {tab === 'cuis' && (
+                    <div className="grid grid-2">
+                      <label className="field">
+                        <span>Código CUIS</span>
+                        <input className="input" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>Sucursal</span>
+                        <select className="input" value={formData.branchOfficeId} onChange={e => setFormData({...formData, branchOfficeId: e.target.value})} required>
+                          {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Punto de Venta</span>
+                        <select className="input" value={formData.pointSaleId} onChange={e => setFormData({...formData, pointSaleId: e.target.value})} required>
+                          {pointsSale.map(p => <option key={p.id} value={p.id}>{p.pointSaleName} ({p.pointSaleCode})</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Fecha Inicio</span>
+                        <input type="date" className="input" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>Fecha Vigencia</span>
+                        <input type="date" className="input" value={formData.effectiveDate} onChange={e => setFormData({...formData, effectiveDate: e.target.value})} required />
+                      </label>
+                    </div>
+                  )}
+                  {tab === 'cufd' && (
+                    <div className="grid grid-2">
+                      <label className="field">
+                        <span>Código CUFD</span>
+                        <input className="input" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>Código Control</span>
+                        <input className="input" value={formData.controlCode} onChange={e => setFormData({...formData, controlCode: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>Dirección</span>
+                        <input className="input" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>CUIS</span>
+                        <select className="input" value={formData.cuisId} onChange={e => setFormData({...formData, cuisId: e.target.value})} required>
+                          {cuisList.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Punto de Venta</span>
+                        <select className="input" value={formData.pointSaleId} onChange={e => setFormData({...formData, pointSaleId: e.target.value})} required>
+                          {pointsSale.map(p => <option key={p.id} value={p.id}>{p.pointSaleName} ({p.pointSaleCode})</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Sucursal</span>
+                        <select className="input" value={formData.branchOfficeId} onChange={e => setFormData({...formData, branchOfficeId: e.target.value})} required>
+                          {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Fecha Inicio</span>
+                        <input type="date" className="input" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>Vigencia 1 (24h)</span>
+                        <input type="date" className="input" value={formData.effectiveDate} onChange={e => setFormData({...formData, effectiveDate: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>Vigencia 2 (72h)</span>
+                        <input type="date" className="input" value={formData.effectiveDate2} onChange={e => setFormData({...formData, effectiveDate2: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>Vigencia 3 (15d)</span>
+                        <input type="date" className="input" value={formData.effectiveDate3} onChange={e => setFormData({...formData, effectiveDate3: e.target.value})} required />
+                      </label>
+                    </div>
+                  )}
+                  {tab === 'puntos-venta' && (
+                    <div className="grid grid-2">
+                      <label className="field">
+                        <span>Código Punto Venta</span>
+                        <input type="number" className="input" value={formData.pointSaleCode} onChange={e => setFormData({...formData, pointSaleCode: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>Nombre</span>
+                        <input className="input" value={formData.pointSaleName} onChange={e => setFormData({...formData, pointSaleName: e.target.value})} required />
+                      </label>
+                      <label className="field">
+                        <span>Tipo</span>
+                        <select className="input" value={formData.pointSaleTypeId} onChange={e => setFormData({...formData, pointSaleTypeId: e.target.value})} required>
+                          {pointSaleTypes.map(t => <option key={t.id} value={t.id}>{t.description} ({t.classifierCode})</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Sucursal</span>
+                        <select className="input" value={formData.branchOfficeId} onChange={e => setFormData({...formData, branchOfficeId: e.target.value})} required>
+                          {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Descripción</span>
+                        <input className="input" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                      </label>
+                    </div>
+                  )}
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-primary">{modalMode === 'create' ? 'Crear' : 'Guardar'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );

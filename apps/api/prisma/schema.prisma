@@ -1,0 +1,912 @@
+// Prisma schema — Fase 3: empresa, catálogos SIAT, comercial y facturación FCV
+// Origen: docs-migracion/01-esquema-bd.md (Laravel → Node)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Dominio Empresa
+// ---------------------------------------------------------------------------
+
+model Company {
+  id                Int       @id @default(autoincrement())
+  nit               String
+  name              String
+  nameCompany       String    @map("name_company")
+  description       String
+  environmentCode   Int       @map("environment_code")
+  modalityCode      Int       @map("modality_code")
+  systemCode        String    @map("system_code")
+  archivePrivateKey String?   @map("archive_private_key")
+  archivePublicKey  String?   @map("archive_public_key")
+  emailSiat         String?   @map("email_siat")
+  nameImage         String?   @map("name_image")
+  state             Int       @default(1)
+  typePrint         Int       @default(1) @map("type_print")
+  createdAt         DateTime? @map("created_at")
+  updatedAt         DateTime? @map("updated_at")
+
+  tokens        Token[]
+  branchOffices BranchOffice[]
+
+  @@map("company")
+}
+
+model Token {
+  id        Int       @id @default(autoincrement())
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
+  value     String
+  version   Int       @default(2)
+  state     Int       @default(1)
+  companyId Int       @map("company_id")
+  createdAt DateTime? @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@map("token")
+}
+
+model BranchOffice {
+  id        Int       @id @default(autoincrement())
+  nit       String
+  name      String
+  tradename String
+  code      Int
+  address   String
+  city      String
+  cityTaxes String    @map("city_taxes")
+  phone     String?
+  email     String
+  web       String
+  state     Int       @default(1)
+  companyId Int       @map("company_id")
+  createdAt DateTime? @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  company            Company            @relation(fields: [companyId], references: [id])
+  pointSales         PointSale[]
+  sales              Sale[]
+  invoices           Invoice[]
+  cuiss              Cuis[]
+  cufds              Cufd[]
+  warehouses         Warehouse[]
+  numberingSequences NumberingSequence[]
+
+  @@map("branch_office")
+}
+
+model PointSaleType {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  pointSales PointSale[]
+
+  @@map("point_sale_type")
+}
+
+model PointSale {
+  id                Int       @id @default(autoincrement())
+  pointSaleCode     Int       @map("point_sale_code")
+  pointSaleName     String    @map("point_sale_name")
+  description       String?
+  pointSaleTypeName String    @map("point_sale_type_name")
+  state             Int       @default(1)
+  pointSaleTypeId   Int?      @map("point_sale_type_id")
+  branchOfficeId    Int       @map("branch_office_id")
+  createdAt         DateTime? @map("created_at")
+  updatedAt         DateTime? @map("updated_at")
+
+  pointSaleType      PointSaleType?     @relation(fields: [pointSaleTypeId], references: [id])
+  branchOffice       BranchOffice       @relation(fields: [branchOfficeId], references: [id])
+  cuiss              Cuis[]
+  cufds              Cufd[]
+  invoices           Invoice[]
+  numberingSequences NumberingSequence[]
+
+  @@map("point_sale")
+}
+
+// ---------------------------------------------------------------------------
+// Dominio Catálogos SIAT
+// ---------------------------------------------------------------------------
+
+model SectorDocument {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  sectorDocumentActivities SectorDocumentActivity[]
+  invoices                 Invoice[]
+
+  @@map("sector_document")
+}
+
+model Activity {
+  id           Int       @id @default(autoincrement())
+  description  String
+  caebCode     String    @map("caeb_code")
+  activityType String    @map("activity_type")
+  state        Int       @default(1)
+  createdAt    DateTime? @map("created_at")
+  updatedAt    DateTime? @map("updated_at")
+
+  legends                  Legend[]
+  sectorDocumentActivities SectorDocumentActivity[]
+  products                 Product[]
+  invoices                 Invoice[]
+  productsServices         ProductsServices[]
+
+  @@map("activity")
+}
+
+model SectorDocumentActivity {
+  id                 Int       @id @default(autoincrement())
+  activityCode       String    @map("activity_code")
+  sectorDocumentCode String    @map("sector_document_code")
+  sectorDocumentType String    @map("sector_document_type")
+  state              Int       @default(1)
+  activityId         Int       @map("activity_id")
+  sectorDocumentId   Int       @map("sector_document_id")
+  createdAt          DateTime? @map("created_at")
+  updatedAt          DateTime? @map("updated_at")
+
+  activity       Activity       @relation(fields: [activityId], references: [id])
+  sectorDocument SectorDocument @relation(fields: [sectorDocumentId], references: [id])
+
+  @@map("sector_document_activity")
+}
+
+model Legend {
+  id                Int       @id @default(autoincrement())
+  activityCode      String    @map("activity_code")
+  legendDescription String    @map("legend_description")
+  state             Int       @default(1)
+  activityId        Int       @map("activity_id")
+  createdAt         DateTime? @map("created_at")
+  updatedAt         DateTime? @map("updated_at")
+
+  activity Activity @relation(fields: [activityId], references: [id])
+
+  @@map("legend")
+}
+
+model IdentityDocumentType {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  @@map("identity_document_type")
+}
+
+model UnitMeasure {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  products              Product[]
+  inventoryEntryDetails InventoryEntryDetail[]
+  inventoryExitDetails  InventoryExitDetail[]
+
+  @@map("unit_measure")
+}
+
+model PaymentMethodType {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  @@map("payment_method_type")
+}
+
+model Currency {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  @@map("currency")
+}
+
+model ReasonCancellation {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  @@map("reason_cancellation")
+}
+
+model TypeInvoiceDocument {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  @@map("type_invoice_document")
+}
+
+model ProductsServices {
+  id                 Int       @id @default(autoincrement())
+  activityCode       String    @map("activity_code")
+  productCode        String    @map("product_code")
+  productDescription String    @map("product_description")
+  state              Int       @default(1)
+  activityId         Int       @map("activity_id")
+  createdAt          DateTime? @map("created_at")
+  updatedAt          DateTime? @map("updated_at")
+
+  activity Activity  @relation(fields: [activityId], references: [id])
+  products Product[]
+
+  @@map("products_services")
+}
+
+// ---------------------------------------------------------------------------
+// Dominio Comercial
+// ---------------------------------------------------------------------------
+
+model City {
+  id        Int       @id @default(autoincrement())
+  name      String
+  state     Int       @default(1)
+  createdAt DateTime? @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  customers Customer[]
+
+  @@map("city")
+}
+
+model Customer {
+  id                       Int       @id @default(autoincrement())
+  code                     Int
+  nit                      String
+  invoiceName              String    @map("invoice_name")
+  ci                       String?
+  name                     String?
+  complement               String?
+  identityDocumentTypeCode String?   @map("identity_document_type_code")
+  phone1                   String?
+  phone2                   String?
+  address                  String?
+  email                    String?
+  birthday                 DateTime?
+  identityDocumentTypeId   Int?      @map("identity_document_type_id")
+  cityId                   Int       @map("city_id")
+  synchronized             Int       @default(0)
+  state                    Int       @default(1)
+  createdAt                DateTime? @map("created_at")
+  updatedAt                DateTime? @map("updated_at")
+
+  city     City      @relation(fields: [cityId], references: [id])
+  sales    Sale[]
+  invoices Invoice[]
+
+  @@map("customer")
+}
+
+model Group {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String
+  state       Int       @default(1)
+  createdAt   DateTime? @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  products Product[]
+
+  @@map("group")
+}
+
+model ProductType {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String
+  state       Int       @default(1)
+  createdAt   DateTime? @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  products Product[]
+
+  @@map("product_type")
+}
+
+model ProductModel {
+  id    Int    @id @default(autoincrement())
+  code  String
+  name  String
+  state Int    @default(1)
+
+  products Product[]
+
+  @@map("product_model")
+}
+
+model Product {
+  id                    Int      @id @default(autoincrement())
+  code                  String
+  tradename             String
+  genericName           String   @map("generic_name")
+  dimension             String
+  costPrice             Decimal  @map("cost_price")
+  sellingPrice          Decimal  @map("selling_price")
+  wholesaleSellingPrice Decimal  @map("wholesale_selling_price")
+  percentageAliquot     Decimal? @map("percentage_aliquot")
+  specificAliquot       Decimal? @map("specific_aliquot")
+  quantityIce           Decimal? @map("quantity_ice")
+  valueIce              Decimal  @default(1) @map("value_ice")
+  brandIce              Int      @default(2) @map("brand_ice")
+  minimumStock          Int      @map("minimum_stock")
+  isStockControlled     Boolean  @default(false) @map("is_stock_controlled")
+  state                 Int      @default(1)
+  groupId               Int      @map("group_id")
+  productModelId        Int      @map("product_model_id")
+  unitMeasureId         Int      @map("unit_measure_id")
+  productTypeId         Int      @map("product_type_id")
+  activityId            Int      @map("activity_id")
+  productsServicesId    Int      @map("products_services_id")
+  settingTableId        Int      @default(1) @map("setting_table_id")
+  userId                Int      @map("user_id")
+  branchOfficeId        Int      @map("branch_office_id")
+  registrationDate      DateTime @map("registration_date")
+  modificationDate      DateTime @map("modification_date")
+
+  unitMeasure      UnitMeasure      @relation(fields: [unitMeasureId], references: [id])
+  activity         Activity         @relation(fields: [activityId], references: [id])
+  productsServices ProductsServices @relation(fields: [productsServicesId], references: [id])
+  group            Group            @relation(fields: [groupId], references: [id])
+  productType      ProductType      @relation(fields: [productTypeId], references: [id])
+  productModel     ProductModel     @relation(fields: [productModelId], references: [id])
+  user             User             @relation(fields: [userId], references: [id])
+
+  inventory             Inventory[]
+  inventoryMovements    InventoryMovement[]
+  inventoryEntryDetails InventoryEntryDetail[]
+  inventoryExitDetails  InventoryExitDetail[]
+
+  @@map("product")
+}
+
+model Sale {
+  id             Int       @id @default(autoincrement())
+  saleNum        Int       @map("sale_num")
+  saleType       String    @map("sale_type")
+  saleDate       DateTime  @map("sale_date")
+  subtotal       Decimal
+  discount       Decimal
+  total          Decimal
+  synchronized   Int       @default(0)
+  state          Int       @default(1)
+  customerId     Int       @map("customer_id")
+  branchOfficeId Int       @map("branch_office_id")
+  userId         Int       @map("user_id")
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  branchOffice   BranchOffice    @relation(fields: [branchOfficeId], references: [id])
+  user           User            @relation(fields: [userId], references: [id])
+  saleDetails    SaleDetail[]
+  invoiceSales   InvoiceSale[]
+  inventoryExits InventoryExit[]
+
+  @@unique([branchOfficeId, saleNum])
+  @@index([branchOfficeId])
+  @@map("sale")
+}
+
+model SaleDetail {
+  id                        Int       @id @default(autoincrement())
+  description               String
+  amount                    Decimal
+  costPrice                 Decimal   @map("cost_price")
+  sellingPrice              Decimal   @map("selling_price")
+  subtotal                  Decimal
+  discount                  Decimal
+  total                     Decimal?
+  activityCode              String    @map("activity_code")
+  productCodeSin            String    @map("product_code_sin")
+  productCode               String    @map("product_code")
+  unitMeasureClassifierCode String    @map("unit_measure_classifier_code")
+  serialNumber              String?   @map("serial_number")
+  imeiNumber                String?   @map("imei_number")
+  state                     Int       @default(1)
+  saleId                    Int       @map("sale_id")
+  productId                 Int       @map("product_id")
+  productsServicesId        Int       @map("products_services_id")
+  unitMeasureId             Int       @map("unit_measure_id")
+  createdAt                 DateTime? @map("created_at")
+  updatedAt                 DateTime? @map("updated_at")
+
+  sale Sale @relation(fields: [saleId], references: [id])
+
+  @@map("sale_detail")
+}
+
+// ---------------------------------------------------------------------------
+// Dominio Inventario
+// ---------------------------------------------------------------------------
+
+model Warehouse {
+  id             Int       @id @default(autoincrement())
+  name           String
+  code           String
+  address        String?
+  description    String?
+  state          Int       @default(1)
+  branchOfficeId Int       @map("branch_office_id")
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  branchOffice       BranchOffice        @relation(fields: [branchOfficeId], references: [id])
+  inventories        Inventory[]
+  inventoryEntries   InventoryEntry[]
+  inventoryExits     InventoryExit[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([branchOfficeId])
+  @@map("warehouse")
+}
+
+model Inventory {
+  id                Int       @id @default(autoincrement())
+  quantity          Decimal   @default(0)
+  availableQuantity Decimal   @default(0) @map("available_quantity")
+  unitCost          Decimal   @default(0) @map("unit_cost")
+  state             Int       @default(1)
+  productId         Int       @map("product_id")
+  warehouseId       Int       @map("warehouse_id")
+  createdAt         DateTime? @map("created_at")
+  updatedAt         DateTime? @map("updated_at")
+
+  product   Product   @relation(fields: [productId], references: [id])
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([productId, warehouseId])
+  @@index([warehouseId])
+  @@map("inventory")
+}
+
+model InventoryEntry {
+  id          Int       @id @default(autoincrement())
+  entryType   String    @map("entry_type")
+  reference   String?
+  total       Decimal   @default(0)
+  state       Int       @default(1)
+  warehouseId Int       @map("warehouse_id")
+  userId      Int       @map("user_id")
+  createdAt   DateTime? @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  warehouse Warehouse              @relation(fields: [warehouseId], references: [id])
+  user      User                   @relation(fields: [userId], references: [id])
+  details   InventoryEntryDetail[]
+
+  @@index([warehouseId])
+  @@index([entryType])
+  @@map("inventory_entry")
+}
+
+model InventoryEntryDetail {
+  id            Int       @id @default(autoincrement())
+  quantity      Decimal
+  costPrice     Decimal   @map("cost_price")
+  state         Int       @default(1)
+  entryId       Int       @map("entry_id")
+  productId     Int       @map("product_id")
+  unitMeasureId Int       @map("unit_measure_id")
+  createdAt     DateTime? @map("created_at")
+  updatedAt     DateTime? @map("updated_at")
+
+  entry       InventoryEntry @relation(fields: [entryId], references: [id])
+  product     Product        @relation(fields: [productId], references: [id])
+  unitMeasure UnitMeasure    @relation(fields: [unitMeasureId], references: [id])
+
+  @@index([entryId])
+  @@index([productId])
+  @@map("inventory_entry_detail")
+}
+
+model InventoryExit {
+  id          Int       @id @default(autoincrement())
+  exitType    String    @map("exit_type")
+  reference   String?
+  total       Decimal   @default(0)
+  state       Int       @default(1)
+  warehouseId Int       @map("warehouse_id")
+  saleId      Int?      @map("sale_id")
+  userId      Int       @map("user_id")
+  createdAt   DateTime? @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  warehouse Warehouse             @relation(fields: [warehouseId], references: [id])
+  sale      Sale?                 @relation(fields: [saleId], references: [id])
+  user      User                  @relation(fields: [userId], references: [id])
+  details   InventoryExitDetail[]
+
+  @@index([warehouseId])
+  @@index([exitType])
+  @@index([saleId])
+  @@map("inventory_exit")
+}
+
+model InventoryExitDetail {
+  id            Int       @id @default(autoincrement())
+  quantity      Decimal
+  costPrice     Decimal   @map("cost_price")
+  state         Int       @default(1)
+  exitId        Int       @map("exit_id")
+  productId     Int       @map("product_id")
+  unitMeasureId Int       @map("unit_measure_id")
+  createdAt     DateTime? @map("created_at")
+  updatedAt     DateTime? @map("updated_at")
+
+  exit        InventoryExit @relation(fields: [exitId], references: [id])
+  product     Product       @relation(fields: [productId], references: [id])
+  unitMeasure UnitMeasure   @relation(fields: [unitMeasureId], references: [id])
+
+  @@index([exitId])
+  @@index([productId])
+  @@map("inventory_exit_detail")
+}
+
+model InventoryMovement {
+  id            Int       @id @default(autoincrement())
+  movementType  String    @map("movement_type")
+  quantity      Decimal
+  unitCost      Decimal   @map("unit_cost")
+  stockAfter    Decimal   @map("stock_after")
+  referenceType String?   @map("reference_type")
+  referenceId   Int?      @map("reference_id")
+  state         Int       @default(1)
+  productId     Int       @map("product_id")
+  warehouseId   Int       @map("warehouse_id")
+  userId        Int       @map("user_id")
+  createdAt     DateTime? @map("created_at")
+  updatedAt     DateTime? @map("updated_at")
+
+  product   Product   @relation(fields: [productId], references: [id])
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([warehouseId])
+  @@index([movementType])
+  @@index([referenceType, referenceId])
+  @@map("inventory_movement")
+}
+
+// ---------------------------------------------------------------------------
+// Dominio Facturación
+// ---------------------------------------------------------------------------
+
+model Invoice {
+  id                       Int       @id @default(autoincrement())
+  invoiceNum               Int       @map("invoice_num")
+  invoiceNumFormat         String?   @map("invoice_num_format")
+  invoiceDate              DateTime  @map("invoice_date")
+  invoiceDateFormat        DateTime? @map("invoice_date_format")
+  activityNum              String    @map("activity_num")
+  codeCustomer             String    @map("code_customer")
+  nitCustomer              String    @map("nit_customer")
+  customerName             String    @map("customer_name")
+  customerComplement       String?   @map("customer_complement")
+  identityDocumentTypeCode String    @map("identity_document_type_code")
+  typeInvoiceDocumentCode  String    @map("type_invoice_document_code")
+  reasonCancellationCode   String?   @map("reason_cancellation_code")
+  sectorDocumentCode       String?   @map("sector_document_code")
+  paymentMethodTypeCode    String?   @map("payment_method_type_code")
+  branchOfficeCode         String?   @map("branch_office_code")
+  pointSaleCode            String?   @map("point_sale_code")
+  currencyCode             String?   @map("currency_code")
+  reasonEventCode          String?   @map("reason_event_code")
+  changeType               Decimal   @map("change_type")
+  amountNotSubjectIva      Decimal   @map("amount_not_subject_iva")
+  exemptOperation          Decimal   @map("exempt_operation")
+  ceroRateSale             Decimal   @map("cero_rate_sale")
+  subtotal                 Decimal
+  discount                 Decimal
+  total                    Decimal
+  giftCardAmount           Decimal   @default(0) @map("gift_card_amount")
+  totalToPay               Decimal   @map("total_to_pay")
+  taxCreditBaseAmount      Decimal   @map("tax_credit_base_amount")
+  iva                      Decimal
+  controlCode              String    @map("control_code")
+  address                  String
+  legendDescription        String    @map("legend_description")
+  cardNumber               String?   @map("card_number")
+  receptionCode            String?   @map("reception_code")
+  emissionType             Int       @default(2) @map("emission_type")
+  synchronizedSiat         Int       @default(2) @map("synchronized_siat")
+  exceptionCode            Int       @default(0) @map("exception_code")
+  contingency              Int?
+  cuis                     String?
+  cufd                     String?
+  cuf                      String?
+  cafc                     String?
+  transaction              Boolean?
+  urlXml                   String?   @map("url_xml")
+  state                    String
+  userId                   Int       @map("user_id")
+  customerId               Int       @map("customer_id")
+  activityId               Int       @map("activity_id")
+  identityDocumentTypeId   Int       @map("identity_document_type_id")
+  typeInvoiceDocumentId    Int       @map("type_invoice_document_id")
+  branchOfficeId           Int       @map("branch_office_id")
+  pointSaleId              Int       @map("point_sale_id")
+  sectorDocumentId         Int?      @map("sector_document_id")
+  paymentMethodTypeId      Int?      @map("payment_method_type_id")
+  currencyId               Int?      @map("currency_id")
+  createdAt                DateTime? @map("created_at")
+  updatedAt                DateTime? @map("updated_at")
+
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  branchOffice   BranchOffice    @relation(fields: [branchOfficeId], references: [id])
+  pointSale      PointSale       @relation(fields: [pointSaleId], references: [id])
+  activity       Activity        @relation(fields: [activityId], references: [id])
+  sectorDocument SectorDocument? @relation(fields: [sectorDocumentId], references: [id])
+  user           User            @relation(fields: [userId], references: [id])
+
+  invoiceDetails InvoiceDetail[]
+  invoiceSales   InvoiceSale[]
+
+  @@unique([branchOfficeId, pointSaleId, invoiceNum])
+  @@index([branchOfficeId, pointSaleId])
+  @@map("invoice")
+}
+
+model InvoiceDetail {
+  id                        Int       @id @default(autoincrement())
+  description               String
+  amount                    Decimal
+  costPrice                 Decimal   @map("cost_price")
+  sellingPrice              Decimal   @map("selling_price")
+  subtotal                  Decimal
+  discount                  Decimal
+  total                     Decimal?
+  activityCode              String    @map("activity_code")
+  productCodeSin            String    @map("product_code_sin")
+  productCode               String    @map("product_code")
+  unitMeasureClassifierCode String    @map("unit_measure_classifier_code")
+  serialNumber              String?   @map("serial_number")
+  imeiNumber                String?   @map("imei_number")
+  state                     Int       @default(1)
+  invoiceId                 Int       @map("invoice_id")
+  productId                 Int       @map("product_id")
+  productsServicesId        Int       @map("products_services_id")
+  unitMeasureId             Int       @map("unit_measure_id")
+  createdAt                 DateTime? @map("created_at")
+  updatedAt                 DateTime? @map("updated_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("invoice_detail")
+}
+
+model InvoiceSale {
+  id        Int       @id @default(autoincrement())
+  invoiceId Int       @map("invoice_id")
+  saleId    Int       @map("sale_id")
+  createdAt DateTime? @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  sale    Sale    @relation(fields: [saleId], references: [id])
+
+  @@map("invoice_sale")
+}
+
+// ---------------------------------------------------------------------------
+// SIAT — CUIS / CUFD
+// ---------------------------------------------------------------------------
+
+model Cuis {
+  id             Int       @id @default(autoincrement())
+  code           String
+  startDate      DateTime  @map("start_date")
+  effectiveDate  DateTime  @map("effective_date")
+  transaction    Boolean
+  state          Int       @default(1)
+  pointSaleId    Int       @map("point_sale_id")
+  branchOfficeId Int       @map("branch_office_id")
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  pointSale    PointSale    @relation(fields: [pointSaleId], references: [id])
+  branchOffice BranchOffice @relation(fields: [branchOfficeId], references: [id])
+  cufds        Cufd[]
+
+  @@map("cuis")
+}
+
+model Cufd {
+  id             Int       @id @default(autoincrement())
+  code           String
+  controlCode    String    @map("control_code")
+  address        String
+  startDate      DateTime  @map("start_date")
+  effectiveDate  DateTime  @map("effective_date")
+  effectiveDate2 DateTime  @map("effective_date2")
+  effectiveDate3 DateTime  @map("effective_date3")
+  transaction    Boolean
+  state          Int       @default(1)
+  state2         Int       @default(1)
+  state3         Int       @default(1)
+  cuisId         Int       @map("cuis_id")
+  pointSaleId    Int       @map("point_sale_id")
+  branchOfficeId Int       @map("branch_office_id")
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  cuis         Cuis         @relation(fields: [cuisId], references: [id])
+  pointSale    PointSale    @relation(fields: [pointSaleId], references: [id])
+  branchOffice BranchOffice @relation(fields: [branchOfficeId], references: [id])
+
+  @@map("cufd")
+}
+
+// ---------------------------------------------------------------------------
+// Autenticación y Autorización
+// ---------------------------------------------------------------------------
+
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  email     String    @unique
+  password  String
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime? @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  userRoles          UserRole[]
+  userPermissions    UserPermission[]
+  sales              Sale[]
+  invoices           Invoice[]
+  products           Product[]
+  inventoryEntries   InventoryEntry[]
+  inventoryExits     InventoryExit[]
+  inventoryMovements InventoryMovement[]
+
+  @@map("user")
+}
+
+model Role {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime? @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("role")
+}
+
+model Permission {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  module      String?
+  action      String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime? @map("created_at")
+
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@map("permission")
+}
+
+model UserRole {
+  userId Int
+  roleId Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_role")
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permission")
+}
+
+model UserPermission {
+  userId       Int
+  permissionId Int
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@index([permissionId])
+  @@map("user_permission")
+}
+
+// ---------------------------------------------------------------------------
+// Catálogos SIAT - Eventos Significativos y Tipos de Cambio
+// ---------------------------------------------------------------------------
+
+model ReasonEvent {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @unique @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  @@map("reason_event")
+}
+
+model ChangeType {
+  id             Int       @id @default(autoincrement())
+  classifierCode String    @unique @map("classifier_code")
+  description    String
+  state          Int       @default(1)
+  createdAt      DateTime? @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+
+  @@map("change_type")
+}
+
+// ---------------------------------------------------------------------------
+// Numeración fiscal (evita huecos/duplicados con bloqueo de fila)
+// ---------------------------------------------------------------------------
+
+model NumberingSequence {
+  id             Int      @id @default(autoincrement())
+  counterType    String   @map("counter_type") // "SALE", "INVOICE"
+  branchOfficeId Int      @map("branch_office_id")
+  pointSaleId    Int?     @map("point_sale_id")
+  current        Int      @default(0)
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  branchOffice BranchOffice @relation(fields: [branchOfficeId], references: [id])
+  pointSale    PointSale?   @relation(fields: [pointSaleId], references: [id])
+
+  @@unique([counterType, branchOfficeId, pointSaleId])
+  @@index([branchOfficeId, pointSaleId])
+  @@map("numbering_sequence")
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@sfe/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Algoritmos SIAT portados y validados contra el sistema PHP original",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

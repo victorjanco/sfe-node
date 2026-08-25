@@ -1,0 +1,39 @@
+node_modules/
+dist/
+dist-build/
+build/
+coverage/
+
+# base de datos local (sqlite)
+*.db
+*.db-journal
+apps/api/prisma/dev.db*
+
+# env
+.env
+.env.*
+!.env.example
+
+# debug local
+.dbg/
+.prisma-data/
+debug-*.md
+*.tmp.js
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# certificados digitales (llaves privadas — no versionar)
+apps/api/keys/
+
+# scripts locales de mantenimiento
+deploy-migrate.bat
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

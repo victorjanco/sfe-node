@@ -1,0 +1,34 @@
+{
+  "startedAt": "2026-08-23T13:53:10.320Z",
+  "cwd": "C:\\laragon\\www\\sfe-node\\apps\\api",
+  "initMs": 1918,
+  "success": false,
+  "storeMs": 1027,
+  "error": {
+    "constructor": "PrismaClientKnownRequestError",
+    "name": "PrismaClientKnownRequestError",
+    "message": "\nInvalid `prisma.numberingSequence.findMany()` invocation:\n\n\nThe table `main.numbering_sequence` does not exist in the current database.",
+    "status": null,
+    "prismaCode": "P2021",
+    "prismaMeta": {
+      "modelName": "NumberingSequence",
+      "table": "main.numbering_sequence"
+    },
+    "response": null,
+    "stack": [
+      "PrismaClientKnownRequestError: ",
+      "Invalid `prisma.numberingSequence.findMany()` invocation:",
+      "",
+      "",
+      "The table `main.numbering_sequence` does not exist in the current database.",
+      "    at ei.handleRequestError (C:\\laragon\\www\\sfe-node\\node_modules\\@prisma\\client\\runtime\\library.js:121:7268)",
+      "    at ei.handleAndLogRequestError (C:\\laragon\\www\\sfe-node\\node_modules\\@prisma\\client\\runtime\\library.js:121:6593)",
+      "    at ei.request (C:\\laragon\\www\\sfe-node\\node_modules\\@prisma\\client\\runtime\\library.js:121:6300)",
+      "    at async a (C:\\laragon\\www\\sfe-node\\node_modules\\@prisma\\client\\runtime\\library.js:130:9551)",
+      "    at async Proxy.nextCounter (C:\\laragon\\www\\sfe-node\\apps\\api\\dist-build\\prisma\\prisma.service.js:63:30)",
+      "    at async C:\\laragon\\www\\sfe-node\\apps\\api\\dist-build\\modules\\sale\\sale.service.js:354:29",
+      "    at async Proxy._transactionWithCallback (C:\\laragon\\www\\sfe-node\\node_modules\\@prisma\\client\\runtime\\library.js:130:8120)",
+      "    at async main (file:///C:/laragon/www/sfe-node/apps/api/scripts/_run-test.mjs:86:17)"
+    ]
+  }
+}

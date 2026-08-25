@@ -1,0 +1,16 @@
+{
+  "name": "sfe-node",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema de Facturación Electrónica — backend Node.js (NestJS) + frontend React. Port del sistema Laravel 5.7 + Vue 2.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @sfe/core",
+    "test": "npm run test -w @sfe/core && npm run test -w @sfe/api",
+    "dev:api": "npm run start:dev -w @sfe/api",
+    "dev:web": "npm run dev -w @sfe/web"
+  }
+}
