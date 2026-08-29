@@ -13,6 +13,7 @@ export const CATALOG_RESOURCES: Record<string, string> = {
   payment_method_type: 'paymentMethodType',
   currency: 'currency',
   reason_cancellation: 'reasonCancellation',
+  reason_event: 'reasonEvent',
   type_invoice_document: 'typeInvoiceDocument',
   products_services: 'productsServices',
   sector_document_activity: 'sectorDocumentActivity',
@@ -40,7 +41,7 @@ export class CatalogSiatController {
   }
 
   @Get('catalog')
-  listAvailable() {
+  listAvailable() {    
     return Object.keys(CATALOG_RESOURCES);
   }
 
@@ -152,6 +153,16 @@ export class CatalogSiatController {
   @Get('sector_document_activity/get_list_enabled')
   sectorDocumentActivityEnabled() {
     return this.delegate('sector_document_activity').findMany({ where: { state: 1 } });
+  }
+
+  @Get('reason_event')
+  reasonEvent() {
+    return this.delegate('reason_event').findMany({ orderBy: { id: 'asc' } });
+  }
+
+  @Get('reason_event/get_list_enabled')
+  reasonEventEnabled() {
+    return this.delegate('reason_event').findMany({ where: { state: 1 } });
   }
 
   @Get('cuis')

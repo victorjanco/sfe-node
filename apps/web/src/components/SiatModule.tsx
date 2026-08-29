@@ -161,6 +161,7 @@ const [formData, setFormData] = useState<{
     { key: 'currency', label: 'Monedas', url: '/catalog/currency/get_list_enabled', cols: ['classifierCode', 'description'] },
     { key: 'reason_cancellation', label: 'Motivos Anulación', url: '/catalog/reason_cancellation/get_list_enabled', cols: ['classifierCode', 'description'] },
     { key: 'type_invoice_document', label: 'Tipos Factura', url: '/catalog/type_invoice_document/get_list_enabled', cols: ['classifierCode', 'description'] },
+    { key: 'reason_event', label: 'Motivos Evento', url: '/catalog/reason_event/get_list_enabled', cols: ['classifierCode', 'description'] },
   ];
 
   useEffect(() => {
@@ -632,6 +633,18 @@ const handleSincronizarTodo = async () => {
     } finally {
       setLoading(false);
     }
+  }; 
+  
+  const handleSincronizarEventosSignificativos = async () => {
+    try {
+      setLoading(true);
+      const res = await apiGet<SyncResponse>('/siat/sincronizar_eventos_significativos');
+      alert(res.transaccion ? 'Eventos significativos sincronizados' : `Error: ${res.mensajes?.[0]?.descripcion || 'Desconocido'}`);
+    } catch (err: any) {
+      setError(err.message || 'Error al sincronizar eventos significativos');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSincronizarParametricas = async () => {
@@ -650,6 +663,7 @@ const handleSincronizarTodo = async () => {
       { label: 'Leyendas Factura', url: '/siat/sincronizar_leyendas_factura' },
       { label: 'Actividades', url: '/siat/sincronizar_actividades' },
       { label: 'Productos/Servicios', url: '/siat/sincronizar_productos' },
+      { label: 'Motivos Evento', url: '/siat/sincronizar_eventos_significativos' },
     ];
     for (const call of calls) {
       const res = await apiGet<SyncResponse>(call.url);
@@ -721,6 +735,9 @@ const handleSincronizarTodo = async () => {
           </button>
           <button className="btn btn-secondary btn-sm" onClick={handleSincronizarLeyendasFactura} disabled={loading}>
             Sinc. Leyendas Factura
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleSincronizarEventosSignificativos} disabled={loading}>
+            Sinc. Motivos Evento
           </button>
           <button className="btn btn-secondary btn-sm" onClick={handleSincronizarParametricas} disabled={loading}>
             Sinc. Parámetros
@@ -968,7 +985,7 @@ const handleSincronizarTodo = async () => {
                 <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
                   Directorio: <code>{certificados.directorio}</code>
                 </p>
-                <div className="table-wrap">
+<div className="table-wrap" style={{ overflowX: 'auto' }}>
                   <table className="table">
                     <thead>
                       <tr>
@@ -1043,7 +1060,7 @@ const handleSincronizarTodo = async () => {
                 </button>
               </div>
             </div>
-            <div className="tabs" style={{ marginBottom: '12px' }}>
+            <div className="tabs" style={{ marginBottom: '12px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
               {CATALOGS.map(cat => (
                 <button
                   key={cat.key}
@@ -1055,15 +1072,15 @@ const handleSincronizarTodo = async () => {
                 </button>
               ))}
             </div>
-            <div className="table-wrap">
-              <table className="table">
+            <div className="table-wrap" style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ minWidth: 'max-content' }}>
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th style={{ minWidth: '30px' }}>ID</th>
                     {CATALOGS.find(c => c.key === catalogTab)?.cols.map(col => (
-                      <th key={col}>{col}</th>
+                      <th key={col} style={{ minWidth: col === 'description' ? '200px' : '100px' }}>{col}</th>
                     ))}
-                    <th>Estado</th>
+                    <th style={{ minWidth: '80px' }}>Estado</th>
                   </tr>
                 </thead>
                 <tbody>

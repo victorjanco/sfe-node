@@ -493,7 +493,12 @@ export class SiatController {
     const cfg = await this.config.get();
     const cuis = await this.prisma.cuis.findFirst({ where: { state: 1 } });
     if (!cfg.enabled) return { transaccion: true, codigos: [] };
-    return this.soap.sincronizarParametricaEventosSignificativos(cfg, { cuis: cuis?.code ?? '' });
+    const r = await this.soap.sincronizarParametricaEventosSignificativos(cfg, { cuis: cuis?.code ?? '' });
+    if (r.transaccion) {
+      const { creados, actualizados } = await this.persistirEventosSignificativos(r.codigos);
+      return { ...r, persistidos: { creados, actualizados } };
+    }
+    return r;
   }
 
   @CheckAbility({ action: Action.Manage, subject: 'Siat' })
@@ -577,6 +582,9 @@ export class SiatController {
               break;
             case 'leyendas_factura':
               persistCounts.persistidos = await this.persistirLeyendas(result.leyendas);
+              break;
+            case 'eventos_significativos':
+              persistCounts.persistidos = await this.persistirEventosSignificativos(result.eventos);
               break;
           }
           results[call.name] = { ...result, ...persistCounts };
@@ -889,6 +897,35 @@ export class SiatController {
       } else {
         await this.prisma.legend.create({
           data: { activityCode, legendDescription, activityId: activity.id, state: ENABLE },
+        });
+        creados++;
+      }
+    }
+    return { creados, actualizados };
+  }
+  
+  private async persistirEventosSignificativos(eventos: any[]): Promise<{ creados: number; actualizados: number }> {
+    let creados = 0;
+    let actualizados = 0;
+    for (const evento of eventos || []) {
+      const classifierCode = String(evento.codigoClasificador ?? '');
+      const description = String(evento.descripcion ?? '');
+     
+      const existente = await this.prisma.reasonEvent.findFirst({
+        where: { 
+          classifierCode,
+          description
+        },
+      });
+      if (existente) {
+        await this.prisma.reasonEvent.update({
+          where: { id: existente.id },
+          data: { state: ENABLE },
+        });
+        actualizados++;
+      } else {
+        await this.prisma.reasonEvent.create({
+          data: { classifierCode, description, state: ENABLE },
         });
         creados++;
       }
