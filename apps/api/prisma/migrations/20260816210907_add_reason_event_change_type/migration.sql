@@ -4,8 +4,8 @@ CREATE TABLE "reason_event" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -14,8 +14,8 @@ CREATE TABLE "change_type" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateIndex

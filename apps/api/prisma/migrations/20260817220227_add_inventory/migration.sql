@@ -7,8 +7,8 @@ CREATE TABLE "warehouse" (
     "description" TEXT,
     "state" INTEGER NOT NULL DEFAULT 1,
     "branch_office_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "warehouse_branch_office_id_fkey" FOREIGN KEY ("branch_office_id") REFERENCES "branch_office" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -21,8 +21,8 @@ CREATE TABLE "inventory" (
     "state" INTEGER NOT NULL DEFAULT 1,
     "product_id" INTEGER NOT NULL,
     "warehouse_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "inventory_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "product" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "inventory_warehouse_id_fkey" FOREIGN KEY ("warehouse_id") REFERENCES "warehouse" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -36,8 +36,8 @@ CREATE TABLE "inventory_entry" (
     "state" INTEGER NOT NULL DEFAULT 1,
     "warehouse_id" INTEGER NOT NULL,
     "user_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "inventory_entry_warehouse_id_fkey" FOREIGN KEY ("warehouse_id") REFERENCES "warehouse" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "inventory_entry_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -51,8 +51,8 @@ CREATE TABLE "inventory_entry_detail" (
     "entry_id" INTEGER NOT NULL,
     "product_id" INTEGER NOT NULL,
     "unit_measure_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "inventory_entry_detail_entry_id_fkey" FOREIGN KEY ("entry_id") REFERENCES "inventory_entry" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "inventory_entry_detail_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "product" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "inventory_entry_detail_unit_measure_id_fkey" FOREIGN KEY ("unit_measure_id") REFERENCES "unit_measure" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -68,8 +68,8 @@ CREATE TABLE "inventory_exit" (
     "warehouse_id" INTEGER NOT NULL,
     "sale_id" INTEGER,
     "user_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "inventory_exit_warehouse_id_fkey" FOREIGN KEY ("warehouse_id") REFERENCES "warehouse" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "inventory_exit_sale_id_fkey" FOREIGN KEY ("sale_id") REFERENCES "sale" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "inventory_exit_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -84,8 +84,8 @@ CREATE TABLE "inventory_exit_detail" (
     "exit_id" INTEGER NOT NULL,
     "product_id" INTEGER NOT NULL,
     "unit_measure_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "inventory_exit_detail_exit_id_fkey" FOREIGN KEY ("exit_id") REFERENCES "inventory_exit" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "inventory_exit_detail_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "product" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "inventory_exit_detail_unit_measure_id_fkey" FOREIGN KEY ("unit_measure_id") REFERENCES "unit_measure" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -104,8 +104,8 @@ CREATE TABLE "inventory_movement" (
     "product_id" INTEGER NOT NULL,
     "warehouse_id" INTEGER NOT NULL,
     "user_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "inventory_movement_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "product" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "inventory_movement_warehouse_id_fkey" FOREIGN KEY ("warehouse_id") REFERENCES "warehouse" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "inventory_movement_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -140,8 +140,8 @@ CREATE TABLE "new_product" (
     "setting_table_id" INTEGER NOT NULL DEFAULT 1,
     "user_id" INTEGER NOT NULL,
     "branch_office_id" INTEGER NOT NULL,
-    "registration_date" DATETIME NOT NULL,
-    "modification_date" DATETIME NOT NULL,
+    "registration_date" TIMESTAMPTZ(3) NOT NULL,
+    "modification_date" TIMESTAMPTZ(3) NOT NULL,
     CONSTRAINT "product_unit_measure_id_fkey" FOREIGN KEY ("unit_measure_id") REFERENCES "unit_measure" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "product_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "activity" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "product_products_services_id_fkey" FOREIGN KEY ("products_services_id") REFERENCES "products_services" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,

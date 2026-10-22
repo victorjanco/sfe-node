@@ -20,6 +20,21 @@ apps/api/prisma/dev.db*
 debug-*.md
 *.tmp.js
 
+# scripts de prueba/debug locales
+apps/api/test-*.js
+apps/api/test-*.php
+apps/api/test-*.xml
+apps/api/check-*.js
+apps/api/debug-*.js
+apps/api/clean-*.js
+apps/api/fix-*.js
+apps/api/full-*.js
+apps/api/start-*.js
+apps/api/decode-*.js
+apps/api/validate-*.js
+apps/api/tmp_*/
+apps/api/public/
+
 # logs
 logs/
 *.log
@@ -37,3 +52,5 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+tsc-output.txt
+*.txt.bak

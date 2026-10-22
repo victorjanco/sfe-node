@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from '../api/client';
 import { SaleIndexResponse, SaleRow } from '../types';
-import { formatDate, formatNumber } from '../utils/format';
+import { formatDateBO, formatNumber } from '../utils/format';
 import { PdfViewer } from './PdfViewer';
 
 export function SalesList(): JSX.Element {
@@ -97,7 +97,7 @@ export function SalesList(): JSX.Element {
                   return (
                     <tr key={s.id}>
                       <td>{s.saleNum}</td>
-                      <td>{formatDate(s.saleDate)}</td>
+                      <td>{formatDateBO(s.saleDate)}</td>
                       <td>{s.customer?.invoiceName ?? '—'}</td>
                       <td>{s.saleType}</td>
                       <td>{inv ? inv.invoiceNumFormat : '—'}</td>

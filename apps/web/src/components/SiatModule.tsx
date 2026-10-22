@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiGet, apiPost, apiPut, apiDelete } from '../api/client';
+import { SignificantEventList } from './SignificantEventList';
+import { ContingencyList } from './ContingencyList';
+import { formatDateBO } from '../utils/format';
 
 interface SyncResponse {
   transaccion: boolean;
@@ -82,7 +85,7 @@ interface Company {
 
 export function SiatModule() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<'cuis' | 'cufd' | 'puntos-venta' | 'catalogos' | 'token' | 'certificados'>('cuis');
+  const [tab, setTab] = useState<'cuis' | 'cufd' | 'puntos-venta' | 'catalogos' | 'token' | 'certificados' | 'significant-events' | 'contingencia'>('cuis');
   const [cuisList, setCuisList] = useState<Cuis[]>([]);
   const [cufdList, setCufdList] = useState<Cufd[]>([]);
   const [pointsSale, setPointsSale] = useState<PointSale[]>([]);
@@ -764,10 +767,16 @@ const handleSincronizarTodo = async () => {
           <button className={`tab ${tab === 'certificados' ? 'active' : ''}`} onClick={() => setTab('certificados')}>
             Certificados
           </button>
-          <button className={`tab ${tab === 'catalogos' ? 'active' : ''}`} onClick={() => setTab('catalogos')}>
-            Catálogos
-          </button>
-        </div>
+            <button className={`tab ${tab === 'catalogos' ? 'active' : ''}`} onClick={() => setTab('catalogos')}>
+              Catálogos
+            </button>
+            <button className={`tab ${tab === 'significant-events' ? 'active' : ''}`} onClick={() => setTab('significant-events')}>
+              Eventos Sig.
+            </button>
+            <button className={`tab ${tab === 'contingencia' ? 'active' : ''}`} onClick={() => setTab('contingencia')}>
+              Contingencia
+            </button>
+          </div>
 
 {tab === 'cuis' && (
           <>
@@ -798,8 +807,8 @@ const handleSincronizarTodo = async () => {
                       <td><code>{item.code}</code></td>
                       <td>{item.pointSale?.pointSaleName || item.pointSaleId}</td>
                       <td>{item.branchOffice?.name || item.pointSaleId}</td>
-                      <td>{item.startDate?.split('T')[0]}</td>
-                      <td>{item.effectiveDate?.split('T')[0]}</td>
+                      <td>{formatDateBO(item.startDate)}</td>
+                      <td>{formatDateBO(item.effectiveDate)}</td>
                       <td>
                         <span className={`badge ${item.transaction ? 'badge-success' : 'badge-neutral'}`}>
                           {item.transaction ? 'Vigente' : 'No vigente'}
@@ -852,10 +861,10 @@ const handleSincronizarTodo = async () => {
                       <td>{item.cuis?.code || item.cuisId}</td>
                       <td>{item.pointSale?.pointSaleName || item.pointSaleId}</td>
                       <td>{item.branchOffice?.name || item.branchOfficeId}</td>
-                      <td>{item.startDate?.split('T')[0]}</td>
-                      <td>{item.effectiveDate?.split('T')[0]}</td>
-                      <td>{item.effectiveDate2?.split('T')[0]}</td>
-                      <td>{item.effectiveDate3?.split('T')[0]}</td>
+                      <td>{formatDateBO(item.startDate)}</td>
+                      <td>{formatDateBO(item.effectiveDate)}</td>
+                      <td>{formatDateBO(item.effectiveDate2)}</td>
+                      <td>{formatDateBO(item.effectiveDate3)}</td>
                       <td>
                         <span className={`badge ${item.transaction ? 'badge-success' : 'badge-neutral'}`}>
                           {item.transaction ? 'Vigente' : 'No vigente'}
@@ -1111,6 +1120,14 @@ const handleSincronizarTodo = async () => {
               </table>
             </div>
           </>
+        )}
+
+        {tab === 'significant-events' && (
+          <SignificantEventList branches={branches} pointsSale={pointsSale} />
+        )}
+
+        {tab === 'contingencia' && (
+          <ContingencyList branches={branches} />
         )}
 
         {/* Modal */}

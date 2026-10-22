@@ -5,8 +5,9 @@ import { CustomerSearch } from './CustomerSearch';
 import { ProductSearch } from './ProductSearch';
 import { SaleResult } from './SaleResult';
 import { apiGet, apiPost } from '../api/client';
-import { EXCEPTIONS, EXCEPTION_LABELS, InvoiceResult, Product, SaleDetailItem, SaleStorePayload, UnitMeasure } from '../types';
+import { EXCEPTIONS, EXCEPTION_LABELS, InvoiceResult, Product, ReasonEvent, SaleDetailItem, SaleStorePayload, SignificantEvent, UnitMeasure } from '../types';
 import { factor, formatNumber, nowLocalDatetime, roundFormat } from '../utils/format';
+import { DOCUMENT_SECTORS_CODES_TYPE_INVOICES, IDENTITY_DOCUMENT, SECTOR_DOCUMENTS } from '../utils/constants';
 
 interface SaleFormProps {
   onSuccess?: () => void;
@@ -67,6 +68,8 @@ export function SaleForm({ onSuccess }: SaleFormProps) {
   const [cardNumber, setCardNumber] = useState('');
   const [giftCardAmount, setGiftCardAmount] = useState<number>(0);
   const [withdrawInventory, setWithdrawInventory] = useState(true);
+  const [reasonEventId, setReasonEventId] = useState<number>(0);
+  const [significantEventId, setSignificantEventId] = useState<number>(0);
 
   const [discount, setDiscount] = useState<number>(0);
   const [details, setDetails] = useState<SaleDetailItem[]>([]);
@@ -78,15 +81,19 @@ export function SaleForm({ onSuccess }: SaleFormProps) {
 
   useEffect(() => {
     if (activityId === 0 && catalogs.activities.length > 0) setActivityId(catalogs.activities[0].id);
-    if (sectorDocumentId === 0 && catalogs.sectorDocuments.length > 0) setSectorDocumentId(catalogs.sectorDocuments[0].id);
+    if (sectorDocumentId === 0 && catalogs.sectorDocuments.length > 0) setSectorDocumentId(catalogs.sectorDocuments.find((d) => d.classifierCode === String(SECTOR_DOCUMENTS['FacturaCompraVenta']))?.id || catalogs.sectorDocuments[0].id);
     if (identityDocumentTypeId === 0 && catalogs.identityDocumentTypes.length > 0) {
       const nit = catalogs.identityDocumentTypes.find((d) => d.classifierCode === '4' || d.description.toLowerCase().includes('nit'));
       setIdentityDocumentTypeId((nit ?? catalogs.identityDocumentTypes[0]).id);
     }
     if (typeInvoiceDocumentId === 0 && catalogs.typeInvoiceDocuments.length > 0) {
-      setTypeInvoiceDocumentId(catalogs.typeInvoiceDocuments[0].id);
+      setTypeInvoiceDocumentId(catalogs.typeInvoiceDocuments.find((d) => d.classifierCode === String(DOCUMENT_SECTORS_CODES_TYPE_INVOICES[SECTOR_DOCUMENTS['FacturaCompraVenta']]))?.id || catalogs.typeInvoiceDocuments[0].id);
     }
     if (branchOfficeId === 0 && catalogs.branchOffices.length > 0) setBranchOfficeId(catalogs.branchOffices[0].id);
+    if (catalogs.activeSignificantEvent) {
+      setSignificantEventId(catalogs.activeSignificantEvent.id);
+      setReasonEventId(catalogs.activeSignificantEvent.reasonEventId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogs.loading]);
 
@@ -217,6 +224,8 @@ export function SaleForm({ onSuccess }: SaleFormProps) {
     setCustomerId(undefined);
     setException(EXCEPTIONS.NONE);
     setWithdrawInventory(true);
+    setReasonEventId(0);
+    setSignificantEventId(0);
   }
 
   async function submit(): Promise<void> {
@@ -243,8 +252,10 @@ export function SaleForm({ onSuccess }: SaleFormProps) {
     }
 
     let finalException = exception;
+    //VERIFICAR SI EL TIPO DOCUMENTO IDENTIDAD ES NIT
+    let identityDocumentCode= catalogs.identityDocumentTypes.find((d) => d.id === identityDocumentTypeId)?.classifierCode;
 
-    if (exception === EXCEPTIONS.NONE && nitCustomer.trim()) {
+    if (identityDocumentCode === String(IDENTITY_DOCUMENT.NIT) && exception === EXCEPTIONS.NONE && nitCustomer.trim()) {
       try {
         const check = await apiGet<{ valido: boolean; mensaje?: string }>('/siat/verificar_nit', {
           nit: nitCustomer.trim(),
@@ -310,7 +321,8 @@ export function SaleForm({ onSuccess }: SaleFormProps) {
       payment_method_type_id: checkOtros && paymentMethodTypeId ? paymentMethodTypeId : undefined,
       identity_document_type_id: identityDocumentTypeId || catalogs.identityDocumentTypes[0]?.id,
       type_invoice_document_id: typeInvoiceDocumentId || catalogs.typeInvoiceDocuments[0]?.id,
-      reason_event_id: '0',
+      reason_event_id: reasonEventId || undefined,
+      significant_event_id: significantEventId || undefined,
     };
 
     setSubmitting(true);
@@ -422,6 +434,47 @@ export function SaleForm({ onSuccess }: SaleFormProps) {
               ))}
             </select>
           </label>
+            {catalogs.activeSignificantEvent ? (
+              <label className="field">
+                <span>Evento significativo activo (SIAT)</span>
+                <div className="input" style={{ backgroundColor: '#fff3cd', borderColor: '#ffc107' }}>
+                  EVENTO #{catalogs.activeSignificantEvent.number} — {catalogs.activeSignificantEvent.reasonEvent?.description ?? catalogs.activeSignificantEvent.reasonEventCode}
+                </div>
+              </label>
+            ) : (
+              <>
+                <label className="field">
+                  <span>Motivo evento (SIAT)</span>
+                  <select
+                    className="input"
+                    value={reasonEventId}
+                    onChange={(e) => setReasonEventId(Number(e.target.value))}
+                  >
+                    <option value={0}>NINGUNO</option>
+                    {catalogs.reasonEvents.map((r: ReasonEvent) => (
+                      <option key={r.id} value={r.id}>
+                        {r.description}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Evento significativo (SIAT)</span>
+                  <select
+                    className="input"
+                    value={significantEventId}
+                    onChange={(e) => setSignificantEventId(Number(e.target.value))}
+                  >
+                    <option value={0}>NINGUNO</option>
+                    {catalogs.significantEvents.map((s: SignificantEvent) => (
+                      <option key={s.id} value={s.id}>
+                        #{s.number} - {s.reasonEvent?.description ?? s.reasonEventCode}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
           <label className="field">
             <span>Moneda</span>
             <select className="input" value={money} onChange={(e) => setMoney(e.target.value)}>

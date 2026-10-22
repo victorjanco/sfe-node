@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateIf, ValidateNested } from 'class-validator';
 
 export class SaleDetailDto {
   @IsOptional() @IsNumber() id?: number;
@@ -54,7 +54,7 @@ export class SaleStoreDto {
   @IsOptional() @IsNumber() payment_method_type_id?: number;
   @IsOptional() @IsNumber() identity_document_type_id?: number;
   @IsOptional() @IsNumber() type_invoice_document_id?: number;
-  @IsOptional() reason_event_id?: string | number;
+  @IsOptional() reason_event_id?: number;
   @IsOptional() @IsNumber() significant_event_id?: number;
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => SaleDetailDto)
   array_detalle?: SaleDetailDto[];

@@ -59,20 +59,20 @@ function xmlTag(tag: string, value: string | number | null): string {
 }
 
 /** Formatea un número con los decimales del sector (number_format PHP). */
-export function formatSectorNumber(value: number, sectorDocumentId: number): string {
-  const decimals = FRACTION_DIGITS_XML[sectorDocumentId] ?? 2;
+export function formatSectorNumber(value: number, sectorClassifierCode: number): string {
+  const decimals = FRACTION_DIGITS_XML[sectorClassifierCode] ?? 2;
   return value.toFixed(decimals);
 }
 
 /** Construye el XML facturaComputarizada/Electrónica + sector. Port fiel de SiatFacturacionHelper. */
 export function buildFacturaXml(
   modality: number,
-  sectorDocumentId: number,
+  sectorClassifierCode: number,
   cabecera: XmlCabeceraParams,
   detalle: XmlDetalleParams[],
 ): string {
   const modalityName = MODALITY_NAME_XML[modality] ?? 'facturaComputarizada';
-  const sectorName = DOCUMENT_SECTORS_NAME_XML[sectorDocumentId] ?? 'CompraVenta';
+  const sectorName = DOCUMENT_SECTORS_NAME_XML[sectorClassifierCode] ?? 'CompraVenta';
   const root = `${modalityName}${sectorName}`;
 
   const cabeceraXml = [
@@ -115,11 +115,11 @@ export function buildFacturaXml(
         xmlTag('codigoProductoSin', d.codigoProductoSin),
         xmlTag('codigoProducto', d.codigoProducto),
         xmlTag('descripcion', d.descripcion),
-        xmlTag('cantidad', formatSectorNumber(d.cantidad, sectorDocumentId)),
+        xmlTag('cantidad', formatSectorNumber(d.cantidad, sectorClassifierCode)),
         xmlTag('unidadMedida', d.unidadMedida),
-        xmlTag('precioUnitario', formatSectorNumber(d.precioUnitario, sectorDocumentId)),
-        xmlTag('montoDescuento', formatSectorNumber(d.montoDescuento, sectorDocumentId)),
-        xmlTag('subTotal', formatSectorNumber(d.subTotal, sectorDocumentId)),
+        xmlTag('precioUnitario', formatSectorNumber(d.precioUnitario, sectorClassifierCode)),
+        xmlTag('montoDescuento', formatSectorNumber(d.montoDescuento, sectorClassifierCode)),
+        xmlTag('subTotal', formatSectorNumber(d.subTotal, sectorClassifierCode)),
         xmlTag('numeroSerie', d.numeroSerie),
         xmlTag('numeroImei', d.numeroImei),
       ];
@@ -128,6 +128,7 @@ export function buildFacturaXml(
     .join('');
 
   return (
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
     `<${root} xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ` +
     `xsi:noNamespaceSchemaLocation="${root}.xsd">` +
     `<cabecera>${cabeceraXml}</cabecera>` +

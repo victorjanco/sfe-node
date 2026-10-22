@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -29,8 +29,8 @@ model Company {
   nameImage         String?   @map("name_image")
   state             Int       @default(1)
   typePrint         Int       @default(1) @map("type_print")
-  createdAt         DateTime? @map("created_at")
-  updatedAt         DateTime? @map("updated_at")
+  createdAt         DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime? @map("updated_at") @db.Timestamptz(3)
 
   tokens        Token[]
   branchOffices BranchOffice[]
@@ -40,14 +40,14 @@ model Company {
 
 model Token {
   id        Int       @id @default(autoincrement())
-  startDate DateTime? @map("start_date")
-  endDate   DateTime? @map("end_date")
+  startDate DateTime? @map("start_date") @db.Timestamptz(3)
+  endDate   DateTime? @map("end_date") @db.Timestamptz(3)
   value     String
   version   Int       @default(2)
   state     Int       @default(1)
   companyId Int       @map("company_id")
-  createdAt DateTime? @map("created_at")
-  updatedAt DateTime? @map("updated_at")
+  createdAt DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @map("updated_at") @db.Timestamptz(3)
 
   company Company @relation(fields: [companyId], references: [id])
 
@@ -68,8 +68,8 @@ model BranchOffice {
   web       String
   state     Int       @default(1)
   companyId Int       @map("company_id")
-  createdAt DateTime? @map("created_at")
-  updatedAt DateTime? @map("updated_at")
+  createdAt DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @map("updated_at") @db.Timestamptz(3)
 
   company            Company            @relation(fields: [companyId], references: [id])
   pointSales         PointSale[]
@@ -79,6 +79,7 @@ model BranchOffice {
   cufds              Cufd[]
   warehouses         Warehouse[]
   numberingSequences NumberingSequence[]
+  contingencies      Contingency[]
 
   @@map("branch_office")
 }
@@ -88,8 +89,8 @@ model PointSaleType {
   classifierCode String    @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   pointSales PointSale[]
 
@@ -105,8 +106,8 @@ model PointSale {
   state             Int       @default(1)
   pointSaleTypeId   Int?      @map("point_sale_type_id")
   branchOfficeId    Int       @map("branch_office_id")
-  createdAt         DateTime? @map("created_at")
-  updatedAt         DateTime? @map("updated_at")
+  createdAt         DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime? @map("updated_at") @db.Timestamptz(3)
 
   pointSaleType      PointSaleType?     @relation(fields: [pointSaleTypeId], references: [id])
   branchOffice       BranchOffice       @relation(fields: [branchOfficeId], references: [id])
@@ -127,11 +128,12 @@ model SectorDocument {
   classifierCode String    @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   sectorDocumentActivities SectorDocumentActivity[]
   invoices                 Invoice[]
+  contingencies            Contingency[]
 
   @@map("sector_document")
 }
@@ -142,14 +144,15 @@ model Activity {
   caebCode     String    @map("caeb_code")
   activityType String    @map("activity_type")
   state        Int       @default(1)
-  createdAt    DateTime? @map("created_at")
-  updatedAt    DateTime? @map("updated_at")
+  createdAt    DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime? @map("updated_at") @db.Timestamptz(3)
 
   legends                  Legend[]
   sectorDocumentActivities SectorDocumentActivity[]
   products                 Product[]
   invoices                 Invoice[]
   productsServices         ProductsServices[]
+  contingencies            Contingency[]
 
   @@map("activity")
 }
@@ -162,8 +165,8 @@ model SectorDocumentActivity {
   state              Int       @default(1)
   activityId         Int       @map("activity_id")
   sectorDocumentId   Int       @map("sector_document_id")
-  createdAt          DateTime? @map("created_at")
-  updatedAt          DateTime? @map("updated_at")
+  createdAt          DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime? @map("updated_at") @db.Timestamptz(3)
 
   activity       Activity       @relation(fields: [activityId], references: [id])
   sectorDocument SectorDocument @relation(fields: [sectorDocumentId], references: [id])
@@ -177,8 +180,8 @@ model Legend {
   legendDescription String    @map("legend_description")
   state             Int       @default(1)
   activityId        Int       @map("activity_id")
-  createdAt         DateTime? @map("created_at")
-  updatedAt         DateTime? @map("updated_at")
+  createdAt         DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime? @map("updated_at") @db.Timestamptz(3)
 
   activity Activity @relation(fields: [activityId], references: [id])
 
@@ -190,8 +193,8 @@ model IdentityDocumentType {
   classifierCode String    @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   @@map("identity_document_type")
 }
@@ -201,8 +204,8 @@ model UnitMeasure {
   classifierCode String    @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   products              Product[]
   inventoryEntryDetails InventoryEntryDetail[]
@@ -216,8 +219,8 @@ model PaymentMethodType {
   classifierCode String    @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   @@map("payment_method_type")
 }
@@ -227,8 +230,8 @@ model Currency {
   classifierCode String    @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   @@map("currency")
 }
@@ -238,8 +241,8 @@ model ReasonCancellation {
   classifierCode String    @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   @@map("reason_cancellation")
 }
@@ -249,8 +252,8 @@ model TypeInvoiceDocument {
   classifierCode String    @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   @@map("type_invoice_document")
 }
@@ -262,8 +265,8 @@ model ProductsServices {
   productDescription String    @map("product_description")
   state              Int       @default(1)
   activityId         Int       @map("activity_id")
-  createdAt          DateTime? @map("created_at")
-  updatedAt          DateTime? @map("updated_at")
+  createdAt          DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime? @map("updated_at") @db.Timestamptz(3)
 
   activity Activity  @relation(fields: [activityId], references: [id])
   products Product[]
@@ -279,8 +282,8 @@ model City {
   id        Int       @id @default(autoincrement())
   name      String
   state     Int       @default(1)
-  createdAt DateTime? @map("created_at")
-  updatedAt DateTime? @map("updated_at")
+  createdAt DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @map("updated_at") @db.Timestamptz(3)
 
   customers Customer[]
 
@@ -300,13 +303,12 @@ model Customer {
   phone2                   String?
   address                  String?
   email                    String?
-  birthday                 DateTime?
-  identityDocumentTypeId   Int?      @map("identity_document_type_id")
+  birthday                 DateTime? @db.Timestamptz(3) identityDocumentTypeId   Int?      @map("identity_document_type_id")
   cityId                   Int       @map("city_id")
   synchronized             Int       @default(0)
   state                    Int       @default(1)
-  createdAt                DateTime? @map("created_at")
-  updatedAt                DateTime? @map("updated_at")
+  createdAt                DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime? @map("updated_at") @db.Timestamptz(3)
 
   city     City      @relation(fields: [cityId], references: [id])
   sales    Sale[]
@@ -320,8 +322,8 @@ model Group {
   name        String
   description String
   state       Int       @default(1)
-  createdAt   DateTime? @map("created_at")
-  updatedAt   DateTime? @map("updated_at")
+  createdAt   DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamptz(3)
 
   products Product[]
 
@@ -333,8 +335,8 @@ model ProductType {
   name        String
   description String
   state       Int       @default(1)
-  createdAt   DateTime? @map("created_at")
-  updatedAt   DateTime? @map("updated_at")
+  createdAt   DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamptz(3)
 
   products Product[]
 
@@ -378,8 +380,8 @@ model Product {
   settingTableId        Int      @default(1) @map("setting_table_id")
   userId                Int      @map("user_id")
   branchOfficeId        Int      @map("branch_office_id")
-  registrationDate      DateTime @map("registration_date")
-  modificationDate      DateTime @map("modification_date")
+  registrationDate      DateTime @map("registration_date") @db.Timestamptz(3)
+  modificationDate      DateTime @map("modification_date") @db.Timestamptz(3)
 
   unitMeasure      UnitMeasure      @relation(fields: [unitMeasureId], references: [id])
   activity         Activity         @relation(fields: [activityId], references: [id])
@@ -401,7 +403,7 @@ model Sale {
   id             Int       @id @default(autoincrement())
   saleNum        Int       @map("sale_num")
   saleType       String    @map("sale_type")
-  saleDate       DateTime  @map("sale_date")
+  saleDate       DateTime @map("sale_date") @db.Timestamptz(3)
   subtotal       Decimal
   discount       Decimal
   total          Decimal
@@ -410,8 +412,8 @@ model Sale {
   customerId     Int       @map("customer_id")
   branchOfficeId Int       @map("branch_office_id")
   userId         Int       @map("user_id")
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
 
   customer       Customer        @relation(fields: [customerId], references: [id])
   branchOffice   BranchOffice    @relation(fields: [branchOfficeId], references: [id])
@@ -445,8 +447,8 @@ model SaleDetail {
   productId                 Int       @map("product_id")
   productsServicesId        Int       @map("products_services_id")
   unitMeasureId             Int       @map("unit_measure_id")
-  createdAt                 DateTime? @map("created_at")
-  updatedAt                 DateTime? @map("updated_at")
+  createdAt                 DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime? @map("updated_at") @db.Timestamptz(3)
 
   sale Sale @relation(fields: [saleId], references: [id])
 
@@ -465,8 +467,8 @@ model Warehouse {
   description    String?
   state          Int       @default(1)
   branchOfficeId Int       @map("branch_office_id")
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   branchOffice       BranchOffice        @relation(fields: [branchOfficeId], references: [id])
   inventories        Inventory[]
@@ -486,8 +488,8 @@ model Inventory {
   state             Int       @default(1)
   productId         Int       @map("product_id")
   warehouseId       Int       @map("warehouse_id")
-  createdAt         DateTime? @map("created_at")
-  updatedAt         DateTime? @map("updated_at")
+  createdAt         DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime? @map("updated_at") @db.Timestamptz(3)
 
   product   Product   @relation(fields: [productId], references: [id])
   warehouse Warehouse @relation(fields: [warehouseId], references: [id])
@@ -505,8 +507,8 @@ model InventoryEntry {
   state       Int       @default(1)
   warehouseId Int       @map("warehouse_id")
   userId      Int       @map("user_id")
-  createdAt   DateTime? @map("created_at")
-  updatedAt   DateTime? @map("updated_at")
+  createdAt   DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamptz(3)
 
   warehouse Warehouse              @relation(fields: [warehouseId], references: [id])
   user      User                   @relation(fields: [userId], references: [id])
@@ -525,8 +527,8 @@ model InventoryEntryDetail {
   entryId       Int       @map("entry_id")
   productId     Int       @map("product_id")
   unitMeasureId Int       @map("unit_measure_id")
-  createdAt     DateTime? @map("created_at")
-  updatedAt     DateTime? @map("updated_at")
+  createdAt     DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime? @map("updated_at") @db.Timestamptz(3)
 
   entry       InventoryEntry @relation(fields: [entryId], references: [id])
   product     Product        @relation(fields: [productId], references: [id])
@@ -546,8 +548,8 @@ model InventoryExit {
   warehouseId Int       @map("warehouse_id")
   saleId      Int?      @map("sale_id")
   userId      Int       @map("user_id")
-  createdAt   DateTime? @map("created_at")
-  updatedAt   DateTime? @map("updated_at")
+  createdAt   DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamptz(3)
 
   warehouse Warehouse             @relation(fields: [warehouseId], references: [id])
   sale      Sale?                 @relation(fields: [saleId], references: [id])
@@ -568,8 +570,8 @@ model InventoryExitDetail {
   exitId        Int       @map("exit_id")
   productId     Int       @map("product_id")
   unitMeasureId Int       @map("unit_measure_id")
-  createdAt     DateTime? @map("created_at")
-  updatedAt     DateTime? @map("updated_at")
+  createdAt     DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime? @map("updated_at") @db.Timestamptz(3)
 
   exit        InventoryExit @relation(fields: [exitId], references: [id])
   product     Product       @relation(fields: [productId], references: [id])
@@ -592,8 +594,8 @@ model InventoryMovement {
   productId     Int       @map("product_id")
   warehouseId   Int       @map("warehouse_id")
   userId        Int       @map("user_id")
-  createdAt     DateTime? @map("created_at")
-  updatedAt     DateTime? @map("updated_at")
+  createdAt     DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime? @map("updated_at") @db.Timestamptz(3)
 
   product   Product   @relation(fields: [productId], references: [id])
   warehouse Warehouse @relation(fields: [warehouseId], references: [id])
@@ -614,8 +616,8 @@ model Invoice {
   id                       Int       @id @default(autoincrement())
   invoiceNum               Int       @map("invoice_num")
   invoiceNumFormat         String?   @map("invoice_num_format")
-  invoiceDate              DateTime  @map("invoice_date")
-  invoiceDateFormat        DateTime? @map("invoice_date_format")
+  invoiceDate              DateTime @map("invoice_date") @db.Timestamptz(3)
+  invoiceDateFormat        DateTime? @map("invoice_date_format") @db.Timestamptz(3)
   activityNum              String    @map("activity_num")
   codeCustomer             String    @map("code_customer")
   nitCustomer              String    @map("nit_customer")
@@ -667,8 +669,8 @@ model Invoice {
   sectorDocumentId         Int?      @map("sector_document_id")
   paymentMethodTypeId      Int?      @map("payment_method_type_id")
   currencyId               Int?      @map("currency_id")
-  createdAt                DateTime? @map("created_at")
-  updatedAt                DateTime? @map("updated_at")
+  createdAt                DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime? @map("updated_at") @db.Timestamptz(3)
 
   customer       Customer        @relation(fields: [customerId], references: [id])
   branchOffice   BranchOffice    @relation(fields: [branchOfficeId], references: [id])
@@ -679,6 +681,7 @@ model Invoice {
 
   invoiceDetails InvoiceDetail[]
   invoiceSales   InvoiceSale[]
+  significantEvents SignificantEventInvoice[]
 
   @@unique([branchOfficeId, pointSaleId, invoiceNum])
   @@index([branchOfficeId, pointSaleId])
@@ -705,8 +708,8 @@ model InvoiceDetail {
   productId                 Int       @map("product_id")
   productsServicesId        Int       @map("products_services_id")
   unitMeasureId             Int       @map("unit_measure_id")
-  createdAt                 DateTime? @map("created_at")
-  updatedAt                 DateTime? @map("updated_at")
+  createdAt                 DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime? @map("updated_at") @db.Timestamptz(3)
 
   invoice Invoice @relation(fields: [invoiceId], references: [id])
 
@@ -717,8 +720,8 @@ model InvoiceSale {
   id        Int       @id @default(autoincrement())
   invoiceId Int       @map("invoice_id")
   saleId    Int       @map("sale_id")
-  createdAt DateTime? @map("created_at")
-  updatedAt DateTime? @map("updated_at")
+  createdAt DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @map("updated_at") @db.Timestamptz(3)
 
   invoice Invoice @relation(fields: [invoiceId], references: [id])
   sale    Sale    @relation(fields: [saleId], references: [id])
@@ -733,14 +736,14 @@ model InvoiceSale {
 model Cuis {
   id             Int       @id @default(autoincrement())
   code           String
-  startDate      DateTime  @map("start_date")
-  effectiveDate  DateTime  @map("effective_date")
+  startDate      DateTime @map("start_date") @db.Timestamptz(3)
+  effectiveDate  DateTime @map("effective_date") @db.Timestamptz(3)
   transaction    Boolean
   state          Int       @default(1)
   pointSaleId    Int       @map("point_sale_id")
   branchOfficeId Int       @map("branch_office_id")
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   pointSale    PointSale    @relation(fields: [pointSaleId], references: [id])
   branchOffice BranchOffice @relation(fields: [branchOfficeId], references: [id])
@@ -754,10 +757,10 @@ model Cufd {
   code           String
   controlCode    String    @map("control_code")
   address        String
-  startDate      DateTime  @map("start_date")
-  effectiveDate  DateTime  @map("effective_date")
-  effectiveDate2 DateTime  @map("effective_date2")
-  effectiveDate3 DateTime  @map("effective_date3")
+  startDate      DateTime @map("start_date") @db.Timestamptz(3)
+  effectiveDate  DateTime @map("effective_date") @db.Timestamptz(3)
+  effectiveDate2 DateTime @map("effective_date2") @db.Timestamptz(3)
+  effectiveDate3 DateTime @map("effective_date3") @db.Timestamptz(3)
   transaction    Boolean
   state          Int       @default(1)
   state2         Int       @default(1)
@@ -765,8 +768,8 @@ model Cufd {
   cuisId         Int       @map("cuis_id")
   pointSaleId    Int       @map("point_sale_id")
   branchOfficeId Int       @map("branch_office_id")
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   cuis         Cuis         @relation(fields: [cuisId], references: [id])
   pointSale    PointSale    @relation(fields: [pointSaleId], references: [id])
@@ -785,8 +788,8 @@ model User {
   email     String    @unique
   password  String
   isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime? @map("created_at")
-  updatedAt DateTime? @map("updated_at")
+  createdAt DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @map("updated_at") @db.Timestamptz(3)
 
   userRoles          UserRole[]
   userPermissions    UserPermission[]
@@ -805,8 +808,8 @@ model Role {
   name        String    @unique
   description String?
   isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime? @map("created_at")
-  updatedAt   DateTime? @map("updated_at")
+  createdAt   DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamptz(3)
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
@@ -821,7 +824,7 @@ model Permission {
   module      String?
   action      String?
   isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime? @map("created_at")
+  createdAt   DateTime? @map("created_at") @db.Timestamptz(3)
 
   rolePermissions RolePermission[]
   userPermissions UserPermission[]
@@ -874,10 +877,99 @@ model ReasonEvent {
   classifierCode String    @unique @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
+
+  significantEvents SignificantEvent[]
 
   @@map("reason_event")
+}
+
+model SignificantEvent {
+  id               Int       @id @default(autoincrement())
+  number           String
+  code             String?
+  startDate        DateTime @map("start_date") @db.Timestamptz(3)
+  endDate          DateTime? @map("end_date") @db.Timestamptz(3)
+  transaction      Boolean?
+  transactionReceipt String? @map("transaction_receipt")
+  transactionValidation String? @map("transaction_validation")
+  cufdEvent        String?   @map("cufd_event")
+  cufd             String?
+  reasonEventCode  String?   @map("reason_event_code")
+  state            Int       @default(1)
+  branchOfficeCode String?   @map("branch_office_code")
+  pointSaleCode    String?   @map("point_sale_code")
+  reasonEventId    Int       @map("reason_event_id")
+  cufdEventId      Int?      @map("cufd_event_id")
+  branchOfficeId   Int       @map("branch_office_id")
+  pointSaleId      Int       @map("point_sale_id")
+  sectorDocumentId Int?      @map("sector_document_id")
+  createdAt        DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime? @map("updated_at") @db.Timestamptz(3)
+
+  reasonEvent ReasonEvent @relation(fields: [reasonEventId], references: [id])
+  contingencies SignificantEventContingency[]
+  invoices     SignificantEventInvoice[]
+  packageReceptions InvoicePackageReception[]
+  packageReceptionValidations ValidationInvoicePackageReception[]
+
+  @@map("significant_event")
+}
+
+model SignificantEventInvoice {
+  id                 Int      @id @default(autoincrement())
+  state              Int      @default(1)
+  synchronizedSiat   Int      @default(2) @map("synchronized_siat")
+  significantEventId Int      @map("significant_event_id")
+  invoiceId          Int      @map("invoice_id")
+
+  significantEvent SignificantEvent @relation(fields: [significantEventId], references: [id])
+  invoice          Invoice          @relation(fields: [invoiceId], references: [id])
+
+  @@unique([significantEventId, invoiceId])
+  @@map("significant_event_invoice")
+}
+
+// ---------------------------------------------------------------------------
+// Paquete de recepcion de facturas (SIAT)
+// ---------------------------------------------------------------------------
+
+model InvoicePackageReception {
+  id                Int      @id @default(autoincrement())
+  number            Int
+  descriptionCode   String?  @map("description_code")
+  stateCode         String?  @map("state_code")
+  receptionCode     String?  @map("reception_code")
+  transaction       Boolean
+  amount            Int?
+  state             Int      @default(1)
+  significantEventId Int     @map("significant_event_id")
+  createdAt         DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime? @map("updated_at") @db.Timestamptz(3)
+
+  significantEvent SignificantEvent @relation(fields: [significantEventId], references: [id])
+  validations      ValidationInvoicePackageReception[]
+
+  @@map("receipt_package_invoice")
+}
+
+model ValidationInvoicePackageReception {
+  id                        Int      @id @default(autoincrement())
+  descriptionCode           String?  @map("description_code")
+  stateCode                 String?  @map("state_code")
+  receptionCode             String?  @map("reception_code")
+  transaction               Boolean
+  state                     Int      @default(1)
+  significantEventId        Int      @map("significant_event_id")
+  receiptPackageInvoiceId   Int      @map("receipt_package_invoice_id")
+  createdAt                 DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime? @map("updated_at") @db.Timestamptz(3)
+
+  significantEvent         SignificantEvent        @relation(fields: [significantEventId], references: [id])
+  invoicePackageReception  InvoicePackageReception  @relation(fields: [receiptPackageInvoiceId], references: [id])
+
+  @@map("validation_invoice_package_reception")
 }
 
 model ChangeType {
@@ -885,10 +977,46 @@ model ChangeType {
   classifierCode String    @unique @map("classifier_code")
   description    String
   state          Int       @default(1)
-  createdAt      DateTime? @map("created_at")
-  updatedAt      DateTime? @map("updated_at")
+  createdAt      DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamptz(3)
 
   @@map("change_type")
+}
+
+// ---------------------------------------------------------------------------
+// Contingencia (CAFC)
+// ---------------------------------------------------------------------------
+
+model Contingency {
+  id               Int       @id @default(autoincrement())
+  number           Int
+  cafc             String
+  amount           Int
+  effectiveDate    DateTime @map("effective_date") @db.Timestamptz(3)
+  state            Int       @default(1)
+  activityId       Int       @map("activity_id")
+  sectorDocumentId Int       @map("sector_document_id")
+  branchOfficeId   Int       @map("branch_office_id")
+  createdAt        DateTime? @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime? @map("updated_at") @db.Timestamptz(3)
+
+  activity       Activity       @relation(fields: [activityId], references: [id])
+  sectorDocument SectorDocument @relation(fields: [sectorDocumentId], references: [id])
+  branchOffice   BranchOffice   @relation(fields: [branchOfficeId], references: [id])
+  significantEvents SignificantEventContingency[]
+
+  @@map("contingency")
+}
+
+model SignificantEventContingency {
+  id                Int @id @default(autoincrement())
+  significantEventId Int @map("significant_event_id")
+  contingencyId      Int @map("contingency_id")
+
+  significantEvent SignificantEvent @relation(fields: [significantEventId], references: [id])
+  contingency      Contingency      @relation(fields: [contingencyId], references: [id])
+
+  @@map("significant_event_contingency")
 }
 
 // ---------------------------------------------------------------------------
@@ -901,7 +1029,7 @@ model NumberingSequence {
   branchOfficeId Int      @map("branch_office_id")
   pointSaleId    Int?     @map("point_sale_id")
   current        Int      @default(0)
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   branchOffice BranchOffice @relation(fields: [branchOfficeId], references: [id])
   pointSale    PointSale?   @relation(fields: [pointSaleId], references: [id])

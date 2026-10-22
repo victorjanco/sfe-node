@@ -49,6 +49,16 @@ const navConfig: NavItem[] = [
     ],
   },
   {
+    label: 'Eventos Significativos',
+    path: '/eventos-significativos',
+    permission: 'significant_event.read',
+  },
+  {
+    label: 'Contingencias',
+    path: '/contingencias',
+    permission: 'contingency.read',
+  },
+  {
     label: 'SIAT',
     path: '/siat',
     permission: 'system.full_access',
@@ -68,12 +78,14 @@ const navConfig: NavItem[] = [
 
 function filterNavItems(items: NavItem[], permissions: string[]): NavItem[] {
   return items
-    .filter((item) => !item.permission || permissions.includes(item.permission))
     .map((item) => ({
       ...item,
       children: item.children ? filterNavItems(item.children, permissions) : undefined,
     }))
-    .filter((item) => !item.children || item.children.length > 0);
+    .filter((item) => {
+      if (item.children) return item.children.length > 0;
+      return !item.permission || permissions.includes(item.permission);
+    });
 }
 
 export function Sidebar() {

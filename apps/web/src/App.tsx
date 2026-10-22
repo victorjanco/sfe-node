@@ -24,6 +24,8 @@ import { AdminConfig } from './components/AdminConfig';
 import { Sidebar } from './components/Sidebar';
 import { UserEdit } from './components/UserEdit';
 import { SiatModule } from './components/SiatModule';
+import { SignificantEventPage } from './components/SignificantEventPage';
+import { ContingencyPage } from './components/ContingencyPage';
 
 function ProtectedRoute() {
   const { isAuthenticated } = useAuth();
@@ -48,7 +50,7 @@ function CheckPermission({ permission, children }: { permission: string; childre
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user?.permissions.includes(permission)) {
+    if (user && !user.permissions.includes(permission)) {
       navigate('/', { replace: true });
     }
   }, [user, permission, navigate]);
@@ -165,6 +167,16 @@ function AppRoutes() {
           <Route path="admin/config" element={
             <CheckPermission permission="system.full_access">
               <AdminConfig />
+            </CheckPermission>
+          } />
+          <Route path="eventos-significativos" element={
+            <CheckPermission permission="significant_event.read">
+              <SignificantEventPage />
+            </CheckPermission>
+          } />
+          <Route path="contingencias" element={
+            <CheckPermission permission="contingency.read">
+              <ContingencyPage />
             </CheckPermission>
           } />
           <Route path="siat" element={

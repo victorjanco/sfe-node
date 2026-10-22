@@ -66,6 +66,15 @@ export const DOCUMENT_SECTORS_TYPE_INVOICES: Record<number, number> = {
   [SECTOR_ZONA_FRANCA]: INVOICE_WITHOUT_TAX_CREDIT,
 };
 
+/** Mapeo sector_document_code → classifier_code de typeInvoiceDocument (string keys para query params). */
+export const DOCUMENT_SECTORS_CODES_TYPE_INVOICES: Record<string, number> = {
+  '1': INVOICE_WITH_TAX_CREDIT,
+  '14': INVOICE_WITH_TAX_CREDIT,
+  '2': INVOICE_WITH_TAX_CREDIT,
+  '5': INVOICE_WITHOUT_TAX_CREDIT,
+  '11': INVOICE_WITH_TAX_CREDIT,
+};
+
 /** NIT ficticio por excepción. */
 export const EXCEPTION_NITS: Record<number, string> = {
   [EXCEPTION_FOREING]: '99001',

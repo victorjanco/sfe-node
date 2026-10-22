@@ -502,6 +502,23 @@ export class SiatController {
   }
 
   @CheckAbility({ action: Action.Manage, subject: 'Siat' })
+  @Get('consulta_eventos_significativos')
+  async consultaEventosSignificativos() {
+    const cfg = await this.config.get();
+    if (!cfg.enabled) return { transaccion: true, mensaje: 'Modo demo' };
+    const cuis = await this.prisma.cuis.findFirst({ where: { state: 1 } });
+    if (!cuis) throw new BadRequestException('No hay CUIS vigente');
+    const cufd = await this.prisma.cufd.findFirst({ where: { state: 1 }, orderBy: { id: 'desc' } });
+    const today = new Date().toISOString().slice(0, 10);
+    const r = await this.soap.consultaEventoSignificativo(cfg, {
+      cuis: cuis.code,
+      cufd: cufd?.code,
+      fechaEvento: today,
+    });
+    return r;
+  }
+
+  @CheckAbility({ action: Action.Manage, subject: 'Siat' })
   @Post('sincronizar_parametros_siat')
   async sincronizarParametrosCompleto() {
     const cfg = await this.config.get();
@@ -700,19 +717,15 @@ export class SiatController {
 
     const existingCufd = await this.prisma.cufd.findFirst({
       where: {
-        cuisId,
         pointSaleId,
         branchOfficeId,
         state: ENABLE,
         effectiveDate: { gte: dateNow },
       },
     });
-    if (existingCufd) {
-      throw new BadRequestException('Existe un CUFD vigente');
-    }
 
     await this.prisma.cufd.updateMany({
-      where: { cuisId, pointSaleId, branchOfficeId, state: ENABLE },
+      where: { pointSaleId, branchOfficeId, state: ENABLE },
       data: { state: DISABLE, state2: DISABLE, state3: DISABLE },
     });
 

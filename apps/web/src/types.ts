@@ -5,6 +5,85 @@ export interface CatalogBase {
   state?: number;
 }
 
+export interface ReasonEvent extends CatalogBase {
+  classifierCode: string;
+}
+
+export interface SignificantEvent extends CatalogBase {
+  number: string;
+  code?: string;
+  startDate: string;
+  endDate?: string;
+  transaction?: boolean;
+  reasonEventId: number;
+  reasonEventCode?: string;
+  cufdEvent?: string;
+  cuf?: string;
+  branchOfficeId: number;
+  pointSaleId: number;
+  sectorDocumentId?: number;
+  contingencies?: SignificantEventContingency[];
+  invoices?: SignificantEventInvoice[];
+  packageReceptions?: InvoicePackageReception[];
+}
+
+export interface SignificantEventContingency {
+  id: number;
+  significantEventId: number;
+  contingencyId: number;
+  contingency?: Contingency;
+}
+
+export interface SignificantEventInvoice {
+  id: number;
+  state: number;
+  synchronizedSiat: number;
+  significantEventId: number;
+  invoiceId: number;
+  invoice?: Invoice;
+}
+
+export interface InvoicePackageReception {
+  id: number;
+  number: number;
+  descriptionCode?: string;
+  stateCode?: string;
+  receptionCode?: string;
+  transaction: boolean;
+  amount?: number;
+  state: number;
+  significantEventId: number;
+  createdAt?: string;
+  validations?: ValidationInvoicePackageReception[];
+}
+
+export interface ValidationInvoicePackageReception {
+  id: number;
+  descriptionCode?: string;
+  stateCode?: string;
+  receptionCode?: string;
+  transaction: boolean;
+  state: number;
+  significantEventId: number;
+  receiptPackageInvoiceId: number;
+  createdAt?: string;
+}
+
+export interface Contingency {
+  id: number;
+  number: number;
+  cafc: string;
+  amount: number;
+  effectiveDate: string;
+  state: number;
+  activityId: number;
+  sectorDocumentId: number;
+  branchOfficeId: number;
+  activity?: Activity;
+  sectorDocument?: SectorDocument;
+  branchOffice?: BranchOffice;
+}
+
 export interface Activity extends CatalogBase {
   caebCode: string;
   activityType: string;

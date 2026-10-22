@@ -10,6 +10,9 @@ import { ProductModule } from './modules/product/product.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SiatModule } from './modules/siat/siat.module';
 import { SaleModule } from './modules/sale/sale.module';
+import { SignificantEventModule } from './modules/significant-event/significant-event.module';
+import { ContingencyModule } from './modules/contingency/contingency.module';
+import { InvoicePackageReceptionModule } from './modules/invoice-package-reception/invoice-package-reception.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { UsersModule } from './modules/users/users.module';
@@ -30,6 +33,9 @@ import { CaslGuard } from './modules/authorization/casl.guard';
     SiatModule,
     SaleModule,
     CatalogSiatModule,
+    SignificantEventModule,
+    ContingencyModule,
+    InvoicePackageReceptionModule,
     AuthModule,
     AuthorizationModule,
     UsersModule,

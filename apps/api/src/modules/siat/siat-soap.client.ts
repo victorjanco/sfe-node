@@ -59,6 +59,37 @@ export interface ParamsRecepcionFactura {
   codigoPuntoVenta?: number;
 }
 
+export interface ParamsRecepcionPaqueteFactura {
+  archivo: string;
+  fechaEnvio: string;
+  hashArchivo: string;
+  cufd: string;
+  cuis: string;
+  codigoDocumentoSector: number;
+  codigoEmision: number;
+  tipoFacturaDocumento: number;
+  codigoPuntoVenta?: number;
+  cafc: string | null;
+  cantidadFacturas: number;
+  codigoEvento: string;
+}
+
+export interface ParamsValidacionPaqueteFactura {
+  cufd: string;
+  cuis: string;
+  codigoDocumentoSector: number;
+  codigoEmision: number;
+  tipoFacturaDocumento: number;
+  codigoPuntoVenta?: number;
+  codigoRecepcion: string;
+}
+
+export interface RespuestaEventoSignificativo {
+  transaccion: boolean;
+  codigoRecepcionEventoSignificativo?: string;
+  mensajes: MensajeSiat[];
+}
+
 export interface RespuestaRecepcionFactura {
   transaccion: boolean;
   codigoEstado?: number;
@@ -154,10 +185,13 @@ export class SiatSoapClient {
     token: string,
   ): Promise<Record<string, unknown>> {
     const body = wrapEnvelope(method, content);
+    console.log(`[SOAP] ${method} → ${url}`);
+    console.log(`[SOAP-BODY] ${body}`);
 
     const res = await this.postSoap(url, body, token);
 
     const text = await res.text();
+    console.log(`[SOAP-RESP] ${method}: ${text.slice(0, 2000)}`);
 
     let parsed: Record<string, unknown> = {};
     try {
@@ -293,9 +327,6 @@ export class SiatSoapClient {
 
     const content =
       `<SolicitudServicioRecepcionFactura>` +
-      `<archivo>${params.archivo}</archivo>` +
-      `<fechaEnvio>${params.fechaEnvio}</fechaEnvio>` +
-      `<hashArchivo>${params.hashArchivo}</hashArchivo>` +
       `<codigoAmbiente>${cfg.codigoAmbiente}</codigoAmbiente>` +
       `<codigoDocumentoSector>${params.codigoDocumentoSector}</codigoDocumentoSector>` +
       `<codigoEmision>${params.codigoEmision}</codigoEmision>` +
@@ -307,6 +338,9 @@ export class SiatSoapClient {
       `<cuis>${escapeXml(params.cuis)}</cuis>` +
       `<nit>${cfg.nit}</nit>` +
       `<tipoFacturaDocumento>${params.tipoFacturaDocumento}</tipoFacturaDocumento>` +
+      `<archivo>${params.archivo}</archivo>` +
+      `<fechaEnvio>${params.fechaEnvio}</fechaEnvio>` +
+      `<hashArchivo>${params.hashArchivo}</hashArchivo>` +
       `</SolicitudServicioRecepcionFactura>`;
 
     const resp = await this.invoke(
@@ -645,5 +679,199 @@ export class SiatSoapClient {
     if (list == null) return [];
     const arr = Array.isArray(list) ? list : [list];
     return arr.filter((m) => m && typeof m === 'object') as T[];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Eventos significativos
+  // ---------------------------------------------------------------------------
+
+  async registroEventoSignificativo(
+    cfg: SiatConfig,
+    params: {
+      codigoMotivoEvento: number;
+      codigoPuntoVenta?: number;
+      codigoSucursal?: number;
+      cuis: string;
+      cufd: string;
+      cufdEvento: string;
+      descripcion: string;
+      fechaHoraInicioEvento: string;
+      fechaHoraFinEvento: string;
+    },
+  ): Promise<RespuestaEventoSignificativo> {
+    const content =
+      `<SolicitudEventoSignificativo>` +
+      `<codigoAmbiente>${cfg.codigoAmbiente}</codigoAmbiente>` +
+      `<codigoMotivoEvento>${params.codigoMotivoEvento}</codigoMotivoEvento>` +
+      `<codigoPuntoVenta>${params.codigoPuntoVenta ?? cfg.codigoPuntoVenta}</codigoPuntoVenta>` +
+      `<codigoSistema>${escapeXml(cfg.codigoSistema)}</codigoSistema>` +
+      `<codigoSucursal>${params.codigoSucursal ?? cfg.codigoSucursal}</codigoSucursal>` +
+      `<cufd>${escapeXml(params.cufd)}</cufd>` +
+      `<cufdEvento>${escapeXml(params.cufdEvento)}</cufdEvento>` +
+      `<cuis>${escapeXml(params.cuis)}</cuis>` +
+      `<descripcion>${escapeXml(params.descripcion)}</descripcion>` +
+      `<fechaHoraFinEvento>${params.fechaHoraFinEvento}</fechaHoraFinEvento>` +
+      `<fechaHoraInicioEvento>${params.fechaHoraInicioEvento}</fechaHoraInicioEvento>` +
+      `<nit>${cfg.nit}</nit>` +
+      `</SolicitudEventoSignificativo>`;
+
+    const resp = await this.invoke(
+      `${cfg.baseUrl}/FacturacionOperaciones`,
+      'registroEventoSignificativo',
+      content,
+      cfg.token,
+    );
+    const rc = (resp['RespuestaListaEventos'] ?? resp) as Record<string, unknown>;
+    const listaEventos = rc['listaEventos'];
+    const eventos = Array.isArray(listaEventos) ? listaEventos : listaEventos ? [listaEventos] : [];
+    const primerEvento = eventos[0] as Record<string, unknown> | undefined;
+    const codigoRecepcion = primerEvento?.['codigoRecepcionEventoSignificativo']
+      ?? rc['codigoRecepcionEventoSignificativo'];
+    return {
+      transaccion: this.esTransaccion(rc['transaccion']),
+      codigoRecepcionEventoSignificativo: codigoRecepcion != null
+        ? String(codigoRecepcion)
+        : undefined,
+      mensajes: this.mensajes(rc['mensajesList']),
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Consulta evento significativo
+  // ---------------------------------------------------------------------------
+
+  async consultaEventoSignificativo(
+    cfg: SiatConfig,
+    params: {
+      cuis: string;
+      cufd?: string;
+      codigoSucursal?: number;
+      codigoPuntoVenta?: number;
+      fechaEvento: string;
+    },
+  ): Promise<RespuestaEventoSignificativo> {
+    const content =
+      `<SolicitudConsultaEvento>` +
+      `<codigoAmbiente>${cfg.codigoAmbiente}</codigoAmbiente>` +
+      `<codigoSistema>${escapeXml(cfg.codigoSistema)}</codigoSistema>` +
+      `<nit>${cfg.nit}</nit>` +
+      `<cuis>${escapeXml(params.cuis)}</cuis>` +
+      (params.cufd ? `<cufd>${escapeXml(params.cufd)}</cufd>` : '') +
+      `<codigoSucursal>${params.codigoSucursal ?? cfg.codigoSucursal}</codigoSucursal>` +
+      `<codigoPuntoVenta>${params.codigoPuntoVenta ?? cfg.codigoPuntoVenta}</codigoPuntoVenta>` +
+      `<fechaEvento>${params.fechaEvento}</fechaEvento>` +
+      `</SolicitudConsultaEvento>`;
+
+    const resp = await this.invoke(
+      `${cfg.baseUrl}/FacturacionOperaciones`,
+      'consultaEventoSignificativo',
+      content,
+      cfg.token,
+    );
+    console.log('[SOAP-CONSULTA-EVENTO] resp:', JSON.stringify(resp).slice(0, 2000));
+    const rc = (resp['RespuestaListaEventos'] ?? resp) as Record<string, unknown>;
+    return {
+      transaccion: this.esTransaccion(rc['transaccion']),
+      mensajes: this.mensajes(rc['mensajesList']),
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Recepción paquete de facturas (contingencia / offline)
+  // ---------------------------------------------------------------------------
+
+  async recepcionPaqueteFactura(
+    cfg: SiatConfig,
+    params: ParamsRecepcionPaqueteFactura,
+  ): Promise<RespuestaRecepcionFactura> {
+    const servicePath =
+      params.codigoDocumentoSector === 1
+        ? 'ServicioFacturacionCompraVenta'
+        : cfg.codigoModalidad === 1
+          ? 'ServicioFacturacionElectronica'
+          : 'ServicioFacturacionComputarizada';
+
+    const content =
+      `<SolicitudServicioRecepcionPaquete>` +
+      `<codigoAmbiente>${cfg.codigoAmbiente}</codigoAmbiente>` +
+      `<codigoDocumentoSector>${params.codigoDocumentoSector}</codigoDocumentoSector>` +
+      `<codigoEmision>${params.codigoEmision}</codigoEmision>` +
+      `<codigoModalidad>${cfg.codigoModalidad}</codigoModalidad>` +
+      `<codigoPuntoVenta>${params.codigoPuntoVenta ?? cfg.codigoPuntoVenta}</codigoPuntoVenta>` +
+      `<codigoSistema>${escapeXml(cfg.codigoSistema)}</codigoSistema>` +
+      `<codigoSucursal>${cfg.codigoSucursal}</codigoSucursal>` +
+      `<cufd>${escapeXml(params.cufd)}</cufd>` +
+      `<cuis>${escapeXml(params.cuis)}</cuis>` +
+      `<nit>${cfg.nit}</nit>` +
+      `<tipoFacturaDocumento>${params.tipoFacturaDocumento}</tipoFacturaDocumento>` +
+      `<archivo>${params.archivo}</archivo>` +
+      `<fechaEnvio>${params.fechaEnvio}</fechaEnvio>` +
+      `<hashArchivo>${params.hashArchivo}</hashArchivo>` +
+      `<cafc>${params.cafc != null ? escapeXml(params.cafc) : ''}</cafc>` +
+      `<cantidadFacturas>${params.cantidadFacturas}</cantidadFacturas>` +
+      `<codigoEvento>${escapeXml(String(params.codigoEvento))}</codigoEvento>` +
+      `</SolicitudServicioRecepcionPaquete>`;
+
+    const resp = await this.invoke(
+      `${cfg.baseUrl}/${servicePath}`,
+      'recepcionPaqueteFactura',
+      content,
+      cfg.token,
+    );
+    const rc = (resp['RespuestaServicioFacturacion'] ?? resp) as Record<string, unknown>;
+    return {
+      transaccion: this.esTransaccion(rc['transaccion']),
+      codigoEstado: rc['codigoEstado'] != null ? Number(rc['codigoEstado']) : undefined,
+      codigoRecepcion: rc['codigoRecepcion'] != null ? String(rc['codigoRecepcion']) : undefined,
+      codigoDescripcion: rc['codigoDescripcion'] != null ? String(rc['codigoDescripcion']) : undefined,
+      mensajes: this.mensajes(rc['mensajesList']),
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Validación recepción paquete de facturas
+  // ---------------------------------------------------------------------------
+
+  async validacionRecepcionPaqueteFactura(
+    cfg: SiatConfig,
+    params: ParamsValidacionPaqueteFactura,
+  ): Promise<RespuestaRecepcionFactura> {
+    const servicePath =
+      params.codigoDocumentoSector === 1
+        ? 'ServicioFacturacionCompraVenta'
+        : cfg.codigoModalidad === 1
+          ? 'ServicioFacturacionElectronica'
+          : 'ServicioFacturacionComputarizada';
+
+    const content =
+      `<SolicitudServicioValidacionRecepcionPaquete>` +
+      `<codigoAmbiente>${cfg.codigoAmbiente}</codigoAmbiente>` +
+      `<codigoDocumentoSector>${params.codigoDocumentoSector}</codigoDocumentoSector>` +
+      `<codigoEmision>${params.codigoEmision}</codigoEmision>` +
+      `<codigoModalidad>${cfg.codigoModalidad}</codigoModalidad>` +
+      `<codigoPuntoVenta>${params.codigoPuntoVenta ?? cfg.codigoPuntoVenta}</codigoPuntoVenta>` +
+      `<codigoSistema>${escapeXml(cfg.codigoSistema)}</codigoSistema>` +
+      `<codigoSucursal>${cfg.codigoSucursal}</codigoSucursal>` +
+      `<cufd>${escapeXml(params.cufd)}</cufd>` +
+      `<cuis>${escapeXml(params.cuis)}</cuis>` +
+      `<nit>${cfg.nit}</nit>` +
+      `<tipoFacturaDocumento>${params.tipoFacturaDocumento}</tipoFacturaDocumento>` +
+      `<codigoRecepcion>${escapeXml(params.codigoRecepcion)}</codigoRecepcion>` +
+      `</SolicitudServicioValidacionRecepcionPaquete>`;
+
+    const resp = await this.invoke(
+      `${cfg.baseUrl}/${servicePath}`,
+      'validacionRecepcionPaqueteFactura',
+      content,
+      cfg.token,
+    );
+    const rc = (resp['RespuestaServicioFacturacion'] ?? resp) as Record<string, unknown>;
+    return {
+      transaccion: this.esTransaccion(rc['transaccion']),
+      codigoEstado: rc['codigoEstado'] != null ? Number(rc['codigoEstado']) : undefined,
+      codigoRecepcion: rc['codigoRecepcion'] != null ? String(rc['codigoRecepcion']) : undefined,
+      codigoDescripcion: rc['codigoDescripcion'] != null ? String(rc['codigoDescripcion']) : undefined,
+      mensajes: this.mensajes(rc['mensajesList']),
+    };
   }
 }

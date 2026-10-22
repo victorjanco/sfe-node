@@ -6,7 +6,9 @@ import {
   IdentityDocumentType,
   PaymentMethodType,
   PointSale,
+  ReasonEvent,
   SectorDocument,
+  SignificantEvent,
   TypeInvoiceDocument,
   TypeMoneySaleResponse,
 } from '../types';
@@ -21,6 +23,9 @@ export interface SaleCatalogs {
   paymentMethodTypes: PaymentMethodType[];
   branchOffices: BranchOffice[];
   pointSales: PointSale[];
+  reasonEvents: ReasonEvent[];
+  significantEvents: SignificantEvent[];
+  activeSignificantEvent: SignificantEvent | null;
   moneySale: string;
   typePrint: number;
   decimals: { product: number; price: number; amount: number; discount: number; total: number };
@@ -37,6 +42,9 @@ export function useSaleCatalogs(): SaleCatalogs {
   const [paymentMethodTypes, setPaymentMethodTypes] = useState<PaymentMethodType[]>([]);
   const [branchOffices, setBranchOffices] = useState<BranchOffice[]>([]);
   const [pointSales, setPointSales] = useState<PointSale[]>([]);
+  const [reasonEvents, setReasonEvents] = useState<ReasonEvent[]>([]);
+  const [significantEvents, setSignificantEvents] = useState<SignificantEvent[]>([]);
+  const [activeSignificantEvent, setActiveSignificantEvent] = useState<SignificantEvent | null>(null);
   const [config, setConfig] = useState({
     moneySale: 'Bs',
     typePrint: 1,
@@ -47,13 +55,16 @@ export function useSaleCatalogs(): SaleCatalogs {
     setLoading(true);
     setError(null);
     try {
-      const [typeMoney, act, sectors, idents, types, payments] = await Promise.all([
+      const [typeMoney, act, sectors, idents, types, payments, reasonEvts, sigEvents, activeEvent] = await Promise.all([
         apiGet<TypeMoneySaleResponse>('/sale/get_type_money_sale'),
         apiGet<Activity[]>('/catalog/activity/get_list_enabled'),
         apiGet<SectorDocument[]>('/catalog/sector_document/get_list_enabled'),
         apiGet<IdentityDocumentType[]>('/catalog/identity_document_type/get_list_enabled'),
         apiGet<TypeInvoiceDocument[]>('/catalog/type_invoice_document/get_list_enabled'),
         apiGet<PaymentMethodType[]>('/catalog/payment_method_type/get_list_enabled'),
+        apiGet<ReasonEvent[]>('/catalog/reason_event/get_list_enabled'),
+        apiGet<SignificantEvent[]>('/significant-event/get_list_enabled'),
+        apiGet<SignificantEvent | null>('/significant-event/get_active_event').catch(() => null),
       ]);
       setActivities(act);
       setSectorDocuments(sectors);
@@ -62,6 +73,9 @@ export function useSaleCatalogs(): SaleCatalogs {
       setPaymentMethodTypes(payments);
       setBranchOffices(typeMoney.branch_offices ?? []);
       setPointSales(typeMoney.point_sales ?? []);
+      setReasonEvents(reasonEvts);
+      setSignificantEvents(sigEvents);
+      setActiveSignificantEvent(activeEvent);
       setConfig({
         moneySale: typeMoney.TYPE_MONEY_SALE ?? 'Bs',
         typePrint: typeMoney.TYPE_PRINT ?? 1,
@@ -94,6 +108,9 @@ export function useSaleCatalogs(): SaleCatalogs {
     paymentMethodTypes,
     branchOffices,
     pointSales,
+    reasonEvents,
+    significantEvents,
+    activeSignificantEvent,
     moneySale: config.moneySale,
     typePrint: config.typePrint,
     decimals: config.decimals,

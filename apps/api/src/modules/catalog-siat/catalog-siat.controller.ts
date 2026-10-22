@@ -1,7 +1,8 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CheckAbility } from '../authorization/decorators/check-ability.decorator';
 import { Action } from '../authorization/enums/action.enum';
+import { DOCUMENT_SECTORS_CODES_TYPE_INVOICES } from '../../common/siat.constants';
 
 /** Mapa recurso (ruta) -> delegate de Prisma. */
 export const CATALOG_RESOURCES: Record<string, string> = {
@@ -25,6 +26,7 @@ export const CATALOG_RESOURCES: Record<string, string> = {
   product_type: 'productType',
   product_model: 'productModel',
   city: 'city',
+  significant_event: 'significantEvent',
 };
 
 @Controller('catalog')
@@ -131,8 +133,12 @@ export class CatalogSiatController {
   }
 
   @Get('type_invoice_document/get_list_enabled')
-  typeInvoiceDocumentEnabled() {
-    return this.delegate('type_invoice_document').findMany({ where: { state: 1 } });
+  typeInvoiceDocumentEnabled(@Query('sector_document_code') sectorDocumentCode?: string) {
+    const where: any = { state: 1 };
+    if (sectorDocumentCode && DOCUMENT_SECTORS_CODES_TYPE_INVOICES[sectorDocumentCode] !== undefined) {
+      where.classifierCode = String(DOCUMENT_SECTORS_CODES_TYPE_INVOICES[sectorDocumentCode]);
+    }
+    return this.delegate('type_invoice_document').findMany({ where });
   }
 
   @Get('products_services')
@@ -162,7 +168,17 @@ export class CatalogSiatController {
 
   @Get('reason_event/get_list_enabled')
   reasonEventEnabled() {
-    return this.delegate('reason_event').findMany({ where: { state: 1 } });
+    return this.delegate('reason_event').findMany({ where: { state: 1, classifierCode: {in: ['1', '2', '3', '4']}, },orderBy: { classifierCode: 'asc' } });
+  }
+
+  @Get('significant_event')
+  significantEvent() {
+    return this.delegate('significant_event').findMany({ orderBy: { id: 'asc' } });
+  }
+
+  @Get('significant_event/get_list_enabled')
+  significantEventEnabled() {
+    return this.delegate('significant_event').findMany({ where: { state: 1 } });
   }
 
   @Get('cuis')

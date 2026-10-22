@@ -12,5 +12,11 @@
     "test": "npm run test -w @sfe/core && npm run test -w @sfe/api",
     "dev:api": "npm run start:dev -w @sfe/api",
     "dev:web": "npm run dev -w @sfe/web"
+  },
+  "dependencies": {
+    "luxon": "^3.7.2"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.7.5"
   }
 }

@@ -79,6 +79,18 @@ const PERMISSIONS = [
   { name: 'siat.read',   description: 'Ver estado SIAT y catálogos', module: 'siat', action: 'read' },
   { name: 'siat.manage', description: 'Gestionar SIAT (sincronizaciones, cuis, cufd, certificados)', module: 'siat', action: 'manage' },
 
+  // Significant Events
+  { name: 'significant_event.read',   description: 'Ver eventos significativos', module: 'significant_event', action: 'read' },
+  { name: 'significant_event.create', description: 'Crear eventos significativos', module: 'significant_event', action: 'create' },
+  { name: 'significant_event.update', description: 'Actualizar eventos significativos', module: 'significant_event', action: 'update' },
+  { name: 'significant_event.delete', description: 'Eliminar eventos significativos', module: 'significant_event', action: 'delete' },
+
+  // Contingency
+  { name: 'contingency.read',   description: 'Ver contingencias', module: 'contingency', action: 'read' },
+  { name: 'contingency.create', description: 'Crear contingencias', module: 'contingency', action: 'create' },
+  { name: 'contingency.update', description: 'Actualizar contingencias', module: 'contingency', action: 'update' },
+  { name: 'contingency.delete', description: 'Eliminar contingencias', module: 'contingency', action: 'delete' },
+
   // System
   { name: 'system.full_access', description: 'Acceso total al sistema', module: 'system', action: 'full_access' },
 ];
@@ -105,6 +117,8 @@ const ROLES = [
       'warehouse.read', 'warehouse.create', 'warehouse.update', 'warehouse.delete',
       'product.read', 'product.create', 'product.update', 'product.delete',
       'siat.read', 'siat.manage',
+      'significant_event.read', 'significant_event.create', 'significant_event.update', 'significant_event.delete',
+      'contingency.read', 'contingency.create', 'contingency.update', 'contingency.delete',
       'reports.read', 'reports.export', 'reports.stock', 'reports.kardex', 'reports.balance',
     ],
   },
@@ -124,6 +138,8 @@ const ROLES = [
       'warehouse.read', 'warehouse.create', 'warehouse.update', 'warehouse.delete',
       'product.read', 'product.create', 'product.update', 'product.delete',
       'siat.read', 'siat.manage',
+      'significant_event.read', 'significant_event.create', 'significant_event.update', 'significant_event.delete',
+      'contingency.read', 'contingency.create', 'contingency.update', 'contingency.delete',
       'reports.read', 'reports.export', 'reports.stock', 'reports.kardex', 'reports.balance',
     ],
   },
@@ -392,7 +408,26 @@ async function main(): Promise<void> {
     });
   }
 
-  console.log('Seed completado: usuarios, roles, permisos, empresa, punto de venta, almacén, clientes.');
+  // ---- Grupo, Modelo, Tipo de Producto ----
+  const group = await prisma.group.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1, name: 'GRUPO', description: 'GRUPO', state: 1 },
+  });
+
+  const productModel = await prisma.productModel.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1, code: 'MOD01', name: 'MODELO', state: 1 },
+  });
+
+  const productType = await prisma.productType.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1, name: 'Tipo Producto', description: 'Tipo Producto', state: 1 },
+  });
+
+  console.log('Seed completado: usuarios, roles, permisos, empresa, punto de venta, almacén, clientes, grupo/modelo/tipo producto.');
 }
 
 main()

@@ -1,17 +1,25 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
+import { mkdirSync, writeFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { DateTime } from 'luxon';
 import { procesoCuf } from '@sfe/core';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SiatEmisionClient } from './siat-emision.client';
+import { SiatEmisionClient } from '../siat/siat-emision.client';
+import { SiatExpirationService } from '../siat/siat-expiration.service';
+import { SiatService } from '../siat/siat.service';
+import { SignificantEventService } from '../significant-event/significant-event.service';
 import { buildFacturaXml } from './factura-xml';
 import { SaleDetailDto, SaleStoreDto } from './dto/sale.dto';
 import { SaleQueryDto } from './dto/sale-query.dto';
 import { InventoryService } from '../inventory/inventory.service';
 import {
+  EMISSION_OFFLINE,
   EMISSION_ONLINE,
   EXCEPTION_NITS,
   IVA_RATE,
+  INVOICE_WITH_TAX_CREDIT,
   NO_CONTINGENCY,
   SECTOR_COMPRA_VENTA,
   SYNC_NO,
@@ -54,11 +62,17 @@ function dateTimeFormat(d: Date): string {
 
 @Injectable()
 export class SaleService {
+  // private readonly nowDate: DateTime;
   constructor(
     private readonly prisma: PrismaService,
     private readonly siatEmisionClient: SiatEmisionClient,
     private readonly inventoryService: InventoryService,
-  ) {}
+    private readonly siatExpiration: SiatExpirationService,
+    private readonly significantEventService: SignificantEventService,
+    private readonly siatService: SiatService,
+  ) {
+    // this.nowDate = DateTime.now().setZone('America/La_Paz');
+  }
 
   async getTypeMoneySale() {
     const company = await this.prisma.company.findFirst({ where: { state: 1 } });
@@ -283,7 +297,84 @@ export class SaleService {
     return '1';
   }
 
+  private async resolveEmissionEvent(
+    tx: Tx,
+    dto: SaleStoreDto,
+  ): Promise<{
+    reasonEventCode: string | null;
+    significantEvent: any;
+    emissionType: string;
+  }> {
+    if (dto.significant_event_id && Number(dto.significant_event_id) !== 0) {
+      const event = await tx.significantEvent.findFirst({
+        where: { id: Number(dto.significant_event_id) },
+      });
+      if (event) {
+        return {
+          reasonEventCode: event.reasonEventCode,
+          significantEvent: event,
+          emissionType: EMISSION_OFFLINE,
+        };
+      }
+    }
+    if (dto.reason_event_id && Number(dto.reason_event_id) !== 0) {
+      const reasonEvent = await tx.reasonEvent.findFirst({
+        where: { id: Number(dto.reason_event_id) },
+      });
+      if (reasonEvent) {
+        return {
+          reasonEventCode: reasonEvent.classifierCode,
+          significantEvent: null,
+          emissionType: EMISSION_OFFLINE,
+        };
+      }
+    }
+    return { reasonEventCode: null, significantEvent: null, emissionType: EMISSION_ONLINE };
+  }
+
+  private async resolveCufdForEvent(
+    tx: Tx,
+    params: {
+      cuisId: number;
+      pointSaleId: number;
+      branchOfficeId: number;
+      reasonEventCode: string | null;
+      significantEvent: any;
+      emissionType: string;
+    },
+  ): Promise<any> {
+    const { cuisId, pointSaleId, branchOfficeId, reasonEventCode, significantEvent, emissionType } = params;
+
+    if (emissionType === EMISSION_OFFLINE && significantEvent?.cufdEvent) {
+      const eventCufd = await tx.cufd.findFirst({ where: { code: significantEvent.cufdEvent } });
+      if (eventCufd) return eventCufd;
+    }
+
+    const reasonNum = Number(reasonEventCode);
+    let cufd: any = null;
+
+    if (reasonNum === 1 || reasonNum === 2) {
+      cufd = await tx.cufd.findFirst({ where: { cuisId, pointSaleId, state: 1, state2: 1 } });
+    } else if (reasonNum >= 3 && reasonNum <= 7) {
+      cufd = await tx.cufd.findFirst({ where: { cuisId, pointSaleId, state: 1, state3: 1 } });
+    }
+
+    if (!cufd) {
+      cufd = await tx.cufd.findFirst({ where: { cuisId, pointSaleId, state: 1 } });
+    }
+
+    if (!cufd) {
+      cufd = await this.siatService.solicitarCufd({ cuisId, pointSaleId, branchOfficeId });
+    }
+
+    return cufd;
+  }
+
   async store(dto: SaleStoreDto) {
+
+    await this.siatExpiration.runAll();
+    const nowDate = DateTime.now().setZone('America/La_Paz');
+    
     const total = round2(toNum(dto.total));
     if (!(total > 0)) throw new BadRequestException('Total debe ser Mayor a 0.00');
 
@@ -308,15 +399,23 @@ export class SaleService {
       const cuis = await tx.cuis.findFirst({
         where: { pointSaleId: pointSale.id, branchOfficeId: branchOffice.id, state: 1 },
       });
-      const cufd = await tx.cufd.findFirst({
-        where: { pointSaleId: pointSale.id, branchOfficeId: branchOffice.id, state: 1 },
-      });
-      // #region debug-point B:cuis-cufd
-      __dbg('B', 'CUIS/CUFD post-lookup', { cuisCode: cuis?.code, cuisState: cuis?.state, cufdCode: cufd?.code, cufdControl: cufd?.controlCode, branchOfficeId: branchOffice.id, pointSaleId: pointSale.id });
-      // #endregion
-      if (!cuis || !cufd) {
-        throw new BadRequestException('CUIS/CUFD no disponibles. Solicitar al SIAT.');
+      if (!cuis) {
+        throw new BadRequestException('CUIS no disponible. Solicitar al SIAT.');
       }
+
+      const emissionResult = await this.resolveEmissionEvent(tx, dto);
+      const reasonEventCode = emissionResult.reasonEventCode;
+      const emissionType = emissionResult.emissionType;
+      let significantEvent = emissionResult.significantEvent;
+
+      const cufd = await this.resolveCufdForEvent(tx, {
+        cuisId: cuis.id,
+        pointSaleId: pointSale.id,
+        branchOfficeId: branchOffice.id,
+        reasonEventCode,
+        significantEvent,
+        emissionType,
+      });
 
       const subtotal = round2(toNum(dto.subtotal, total));
       const discount = round2(toNum(dto.discount));
@@ -331,30 +430,57 @@ export class SaleService {
       const customer = await this.resolveCustomer(tx, dto, exceptionCode, defaultCityId);
 
       // #region debug-point C:customer-and-sector-docs
-      __dbg('C', 'Cliente resuelto + sector docs lookup PRE', { exceptionCode, exceptionNit: EXCEPTION_NITS[exceptionCode], nitIngresado: dto.nit_customer, customerId: customer?.id, customerNit: customer?.nit, customerInvoiceName: customer?.invoiceName, sectorDocumentId: dto.sector_document_id, docNameXml: DOCUMENT_SECTORS_NAME_XML[dto.sector_document_id ?? SECTOR_COMPRA_VENTA], typeInvDefaultForSector: DOCUMENT_SECTORS_TYPE_INVOICES[dto.sector_document_id ?? SECTOR_COMPRA_VENTA] });
+      __dbg('C', 'Cliente resuelto + sector docs lookup PRE', { exceptionCode, exceptionNit: EXCEPTION_NITS[exceptionCode], nitIngresado: dto.nit_customer, customerId: customer?.id, customerNit: customer?.nit, customerInvoiceName: customer?.invoiceName, sectorDocumentId: dto.sector_document_id });
       // #endregion
 
       const identityDocTypeId = dto.identity_document_type_id ?? customer.identityDocumentTypeId ?? 2;
       const identityDoc = await tx.identityDocumentType.findUnique({ where: { id: identityDocTypeId } });
       const identityDocCode = identityDoc?.classifierCode ?? '2';
 
-      const sectorDocumentId = dto.sector_document_id ?? SECTOR_COMPRA_VENTA;
-      const sectorDocument = await tx.sectorDocument.findUnique({ where: { id: sectorDocumentId } });
-
-      // #region debug-point A:sector-document-id
-      __dbg('A', 'sectorDocument post-DB result', { sectorDocumentId, sectorDocumentFound: !!sectorDocument, sectorDocumentClassifier: sectorDocument ? { id: sectorDocument.id, classifierCode: sectorDocument.classifierCode, name: (sectorDocument as any)?.name ?? sectorDocument } : null });
-      // #endregion
+      let sectorDocument;
+      if (dto.sector_document_id) {
+        sectorDocument = await tx.sectorDocument.findUnique({ where: { id: dto.sector_document_id } });
+      }
+      if (!sectorDocument) {
+        sectorDocument = await tx.sectorDocument.findFirst({ where: { classifierCode: String(SECTOR_COMPRA_VENTA), state: 1 } });
+      }
+      if (!sectorDocument) {
+        sectorDocument = await tx.sectorDocument.findFirst({ where: { state: 1 } });
+      }
       if (!sectorDocument) throw new NotFoundException('Documento de sector no encontrado');
+      const sectorDocumentId = sectorDocument.id;
+
+      if (emissionType === EMISSION_OFFLINE && reasonEventCode && !significantEvent) {
+        const reasonEvent = await tx.reasonEvent.findFirst({ where: { classifierCode: reasonEventCode } });
+        if (reasonEvent) {
+          significantEvent = await this.significantEventService.findOrCreateActiveEvent({
+            reasonEventId: reasonEvent.id,
+            branchOfficeId: branchOffice.id,
+            pointSaleId: pointSale.id,
+            sectorDocumentId,
+            nowDate: nowDate.toJSDate()
+          });
+        }
+      }
+
+      const sectorClassifierCode = Number(sectorDocument.classifierCode) || SECTOR_COMPRA_VENTA;
 
       const activityId = dto.activity_id ?? (customer as any)._activityId ?? 1;
       const activity = await tx.activity.findUnique({ where: { id: activityId } });
       if (!activity) throw new NotFoundException('Actividad económica no encontrada');
 
-      const typeInvoiceDocumentId =
-        dto.type_invoice_document_id ?? DOCUMENT_SECTORS_TYPE_INVOICES[sectorDocumentId] ?? 1;
-      const typeInvoiceDocument = await tx.typeInvoiceDocument.findUnique({
-        where: { id: typeInvoiceDocumentId },
-      });
+      let typeInvoiceDocument;
+      if (dto.type_invoice_document_id) {
+        typeInvoiceDocument = await tx.typeInvoiceDocument.findUnique({ where: { id: dto.type_invoice_document_id } });
+      }
+      if (!typeInvoiceDocument) {
+        const targetClassifierCode = String(DOCUMENT_SECTORS_TYPE_INVOICES[sectorClassifierCode] ?? INVOICE_WITH_TAX_CREDIT);
+        typeInvoiceDocument = await tx.typeInvoiceDocument.findFirst({ where: { classifierCode: targetClassifierCode, state: 1 } });
+      }
+      if (!typeInvoiceDocument) {
+        typeInvoiceDocument = await tx.typeInvoiceDocument.findFirst({ where: { state: 1 } });
+      }
+      const typeInvoiceDocumentId = typeInvoiceDocument!.id;
       const typeInvoiceDocCode = typeInvoiceDocument?.classifierCode ?? '1';
 
       const paymentMethodTypeCode = this.resolvePaymentMethod(dto);
@@ -362,8 +488,11 @@ export class SaleService {
       const saleNum = await this.prisma.nextSaleNum(tx as any, branchOffice.id);
       const invoiceNum = await this.prisma.nextInvoiceNum(tx as any, branchOffice.id, pointSale.id);
 
-      const saleDate = new Date();
-      const invoiceDateFormatStr = dateTimeFormat(saleDate) + '.461';
+      const saleDate = nowDate.toJSDate();
+      console.log('fechaVenta:',saleDate);
+      // console.log('fechaVentaString:',saleDate.toDateString());
+      const invoiceDateFormatStr = nowDate.toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+      console.log('fechaFactura:',invoiceDateFormatStr);
 
       const legend =
         (await tx.legend.findFirst({ where: { state: 1, activityId: activity.id }, orderBy: { id: 'desc' } })) ??
@@ -378,7 +507,7 @@ export class SaleService {
         fecha: invoiceDateFormatStr,
         sucursal: branchOffice.code,
         modalidad: company.modalityCode,
-        tipo_emision: EMISSION_ONLINE,
+        tipo_emision: emissionType,
         tipo_factura: typeInvoiceDocCode,
         documento_sector: sectorDocument.classifierCode,
         numero_factura_format: padStart(invoiceNum, 10),
@@ -438,12 +567,12 @@ export class SaleService {
       }
 
       // #region debug-point D:pre-build-xml
-      __dbg('D', 'Datos justo antes de buildFacturaXml', { modalityCode: company.modalityCode, modalityName: MODALITY_NAME_XML[company.modalityCode], sectorDocumentId, sectorName: DOCUMENT_SECTORS_NAME_XML[sectorDocumentId], sectorClassifier: sectorDocument.classifierCode, typeInvoiceDocCode: typeInvoiceDocCode, exceptionCodeFinal: exceptionCode, finalCurrencyCode: currencyCode, cufOk: !!cufResult?.cuf, detalle_len: detailRows.length, activityCaeb: activity?.caebCode });
+      __dbg('D', 'Datos justo antes de buildFacturaXml', { modalityCode: company.modalityCode, modalityName: MODALITY_NAME_XML[company.modalityCode], sectorClassifierCode, sectorName: DOCUMENT_SECTORS_NAME_XML[sectorClassifierCode], sectorClassifier: sectorDocument.classifierCode, typeInvoiceDocCode: typeInvoiceDocCode, exceptionCodeFinal: exceptionCode, finalCurrencyCode: currencyCode, cufOk: !!cufResult?.cuf, detalle_len: detailRows.length, activityCaeb: activity?.caebCode });
       // #endregion
 
       const xml = buildFacturaXml(
         company.modalityCode,
-        sectorDocumentId,
+        sectorClassifierCode,
         {
           nitEmisor: branchOffice.nit,
           razonSocialEmisor: company.nameCompany,
@@ -502,34 +631,46 @@ export class SaleService {
           `No se pudo preparar la factura para el SIAT: ${(err as Error).message}`,
         );
       }
-      const { archivo, hashArchivo } = preparado;
-      const urlXml = `facturas/${branchOffice.code}/en_linea/fc_${hashArchivo}.xml`;
+      const { archivo, hashArchivo, xmlFirmado } = preparado;
 
-      const comm = await this.siatEmisionClient.verificarComunicacion();
-      if (!comm.transaccion) {
-        throw new BadRequestException('No hay conexión con el SIAT');
-      }
-      const reception = await this.siatEmisionClient.recepcionFactura({
-        archivo,
-        hashArchivo,
-        fechaEnvio: invoiceDateFormatStr,
-        cufd: cufd.code,
-        cuis: cuis.code,
-        codigoDocumentoSector: Number(sectorDocument.classifierCode),
-        codigoEmision: EMISSION_ONLINE,
-        tipoFacturaDocumento: Number(typeInvoiceDocCode),
-      });
-      if (!reception.transaccion) {
-        const errores = (reception.errores as Array<{ descripcion?: string }> | undefined)
-          ?.map((e) => e.descripcion)
-          .filter(Boolean)
-          .join('; ');
-        const detalle = [reception.codigoDescripcion, errores].filter(Boolean).join(' — ');
-        throw new BadRequestException(
-          `La factura fue rechazada por el SIAT` +
-            (reception.codigoEstado != null ? ` (código ${reception.codigoEstado})` : '') +
-            (detalle ? `: ${detalle}` : ''),
-        );
+      const isOffline = emissionType === EMISSION_OFFLINE;
+      const urlXml = isOffline
+        ? `facturas/${branchOffice.code}/offline/fc_${hashArchivo}.xml`
+        : `facturas/${branchOffice.code}/en_linea/fc_${hashArchivo}.xml`;
+
+      const xmlFullPath = join(process.cwd(), 'public', urlXml);
+      mkdirSync(dirname(xmlFullPath), { recursive: true });
+      writeFileSync(xmlFullPath, xmlFirmado, 'utf-8');
+
+      let reception: any = { transaccion: true, codigoRecepcion: null, codigoEstado: 902 };
+
+      if (!isOffline) {
+        const comm = await this.siatEmisionClient.verificarComunicacion();
+        if (!comm.transaccion) {
+          throw new BadRequestException('No hay conexión con el SIAT');
+        }
+        reception = await this.siatEmisionClient.recepcionFactura({
+          archivo,
+          hashArchivo,
+          fechaEnvio: invoiceDateFormatStr,
+          cufd: cufd.code,
+          cuis: cuis.code,
+          codigoDocumentoSector: Number(sectorDocument.classifierCode),
+          codigoEmision: EMISSION_ONLINE,
+          tipoFacturaDocumento: Number(typeInvoiceDocCode),
+        });
+        if (!reception.transaccion) {
+          const errores = (reception.errores as Array<{ descripcion?: string }> | undefined)
+            ?.map((e) => e.descripcion)
+            .filter(Boolean)
+            .join('; ');
+          const detalle = [reception.codigoDescripcion, errores].filter(Boolean).join(' — ');
+          throw new BadRequestException(
+            `La factura fue rechazada por el SIAT` +
+              (reception.codigoEstado != null ? ` (código ${reception.codigoEstado})` : '') +
+              (detalle ? `: ${detalle}` : ''),
+          );
+        }
       }
 
       const sale = await tx.sale.create({
@@ -540,7 +681,7 @@ export class SaleService {
           subtotal,
           discount,
           total,
-          synchronized: SYNC_YES,
+          synchronized: isOffline ? SYNC_NO : SYNC_YES,
           state: 1,
           customerId: customer.id,
           branchOfficeId: branchOffice.id,
@@ -613,15 +754,16 @@ export class SaleService {
           address: cufd.address,
           legendDescription: legend.legendDescription,
           cardNumber: dto.card_number ?? null,
-          receptionCode: reception.codigoRecepcion,
-          emissionType: EMISSION_ONLINE,
-          synchronizedSiat: SYNC_YES,
+          receptionCode: isOffline ? null : reception.codigoRecepcion,
+          emissionType,
+          synchronizedSiat: isOffline ? SYNC_NO : SYNC_YES,
           exceptionCode,
           contingency: NO_CONTINGENCY,
+          reasonEventCode: reasonEventCode || null,
           cuis: cuis.code,
-          cufd: cufd.code,
+          cufd: significantEvent?.cufd || cufd.code,
           cuf: cufResult.cuf,
-          transaction: true,
+          transaction: !isOffline,
           urlXml,
           state: INVOICE_STATE_VALID,
           userId: 1,
@@ -661,12 +803,30 @@ export class SaleService {
 
       await tx.invoiceSale.create({ data: { invoiceId: invoice.id, saleId: sale.id } });
 
+      if (isOffline && significantEvent) {
+        await tx.significantEventInvoice.upsert({
+          where: {
+            significantEventId_invoiceId: {
+              significantEventId: significantEvent.id,
+              invoiceId: invoice.id,
+            },
+          },
+          update: {},
+          create: {
+            significantEventId: significantEvent.id,
+            invoiceId: invoice.id,
+          },
+        });
+      }
+
       return { invoice, invoice_result: reception };
     }, TX_OPTS);
     return txPromise;
   }
 
   async storeNote(dto: SaleStoreDto) {
+    await this.siatExpiration.runAll();
+
     const total = round2(toNum(dto.total));
     if (!(total > 0)) throw new BadRequestException('Total debe ser Mayor a 0.00');
 
@@ -714,7 +874,7 @@ export class SaleService {
 
       const subtotal = round2(toNum(dto.subtotal, total));
       const discount = round2(toNum(dto.discount));
-      const saleDate = dto.sale_date ? new Date(dto.sale_date) : new Date();
+      const saleDate = dto.sale_date ? new Date(dto.sale_date) : DateTime.now().toJSDate();
       const paymentMethodTypeCode = this.resolvePaymentMethod(dto);
 
       const detailRows: Array<{

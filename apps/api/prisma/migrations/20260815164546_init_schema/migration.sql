@@ -14,21 +14,21 @@ CREATE TABLE "company" (
     "name_image" TEXT,
     "state" INTEGER NOT NULL DEFAULT 1,
     "type_print" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
 CREATE TABLE "token" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "start_date" DATETIME,
-    "end_date" DATETIME,
+    "start_date" TIMESTAMPTZ(3),
+    "end_date" TIMESTAMPTZ(3),
     "value" TEXT NOT NULL,
     "version" INTEGER NOT NULL DEFAULT 2,
     "state" INTEGER NOT NULL DEFAULT 1,
     "company_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "token_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "company" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -47,8 +47,8 @@ CREATE TABLE "branch_office" (
     "web" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
     "company_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "branch_office_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "company" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -58,8 +58,8 @@ CREATE TABLE "point_sale_type" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -72,8 +72,8 @@ CREATE TABLE "point_sale" (
     "state" INTEGER NOT NULL DEFAULT 1,
     "point_sale_type_id" INTEGER,
     "branch_office_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "point_sale_point_sale_type_id_fkey" FOREIGN KEY ("point_sale_type_id") REFERENCES "point_sale_type" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "point_sale_branch_office_id_fkey" FOREIGN KEY ("branch_office_id") REFERENCES "branch_office" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -84,8 +84,8 @@ CREATE TABLE "sector_document" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -95,8 +95,8 @@ CREATE TABLE "activity" (
     "caeb_code" TEXT NOT NULL,
     "activity_type" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -108,8 +108,8 @@ CREATE TABLE "sector_document_activity" (
     "state" INTEGER NOT NULL DEFAULT 1,
     "activity_id" INTEGER NOT NULL,
     "sector_document_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "sector_document_activity_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "activity" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "sector_document_activity_sector_document_id_fkey" FOREIGN KEY ("sector_document_id") REFERENCES "sector_document" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -121,8 +121,8 @@ CREATE TABLE "legend" (
     "legend_description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
     "activity_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "legend_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "activity" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -132,8 +132,8 @@ CREATE TABLE "identity_document_type" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -142,8 +142,8 @@ CREATE TABLE "unit_measure" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -152,8 +152,8 @@ CREATE TABLE "payment_method_type" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -162,8 +162,8 @@ CREATE TABLE "currency" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -172,8 +172,8 @@ CREATE TABLE "reason_cancellation" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -182,8 +182,8 @@ CREATE TABLE "type_invoice_document" (
     "classifier_code" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -194,8 +194,8 @@ CREATE TABLE "products_services" (
     "product_description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
     "activity_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "products_services_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "activity" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -204,8 +204,8 @@ CREATE TABLE "city" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "name" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -222,13 +222,13 @@ CREATE TABLE "customer" (
     "phone2" TEXT,
     "address" TEXT,
     "email" TEXT,
-    "birthday" DATETIME,
+    "birthday" TIMESTAMPTZ(3),
     "identity_document_type_id" INTEGER,
     "city_id" INTEGER NOT NULL,
     "synchronized" INTEGER NOT NULL DEFAULT 0,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "customer_city_id_fkey" FOREIGN KEY ("city_id") REFERENCES "city" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -238,8 +238,8 @@ CREATE TABLE "group" (
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -248,8 +248,8 @@ CREATE TABLE "product_type" (
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -286,8 +286,8 @@ CREATE TABLE "product" (
     "setting_table_id" INTEGER NOT NULL DEFAULT 1,
     "user_id" INTEGER NOT NULL,
     "branch_office_id" INTEGER NOT NULL,
-    "registration_date" DATETIME NOT NULL,
-    "modification_date" DATETIME NOT NULL,
+    "registration_date" TIMESTAMPTZ(3) NOT NULL,
+    "modification_date" TIMESTAMPTZ(3) NOT NULL,
     CONSTRAINT "product_unit_measure_id_fkey" FOREIGN KEY ("unit_measure_id") REFERENCES "unit_measure" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "product_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "activity" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "product_products_services_id_fkey" FOREIGN KEY ("products_services_id") REFERENCES "products_services" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -302,7 +302,7 @@ CREATE TABLE "sale" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "sale_num" INTEGER NOT NULL,
     "sale_type" TEXT NOT NULL,
-    "sale_date" DATETIME NOT NULL,
+    "sale_date" TIMESTAMPTZ(3) NOT NULL,
     "subtotal" DECIMAL NOT NULL,
     "discount" DECIMAL NOT NULL,
     "total" DECIMAL NOT NULL,
@@ -311,8 +311,8 @@ CREATE TABLE "sale" (
     "customer_id" INTEGER NOT NULL,
     "branch_office_id" INTEGER NOT NULL,
     "user_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "sale_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customer" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "sale_branch_office_id_fkey" FOREIGN KEY ("branch_office_id") REFERENCES "branch_office" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "sale_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -339,8 +339,8 @@ CREATE TABLE "sale_detail" (
     "product_id" INTEGER NOT NULL,
     "products_services_id" INTEGER NOT NULL,
     "unit_measure_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "sale_detail_sale_id_fkey" FOREIGN KEY ("sale_id") REFERENCES "sale" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -349,8 +349,8 @@ CREATE TABLE "invoice" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "invoice_num" INTEGER NOT NULL,
     "invoice_num_format" TEXT,
-    "invoice_date" DATETIME NOT NULL,
-    "invoice_date_format" DATETIME,
+    "invoice_date" TIMESTAMPTZ(3) NOT NULL,
+    "invoice_date_format" TIMESTAMPTZ(3),
     "activity_num" TEXT NOT NULL,
     "code_customer" TEXT NOT NULL,
     "nit_customer" TEXT NOT NULL,
@@ -402,8 +402,8 @@ CREATE TABLE "invoice" (
     "sector_document_id" INTEGER,
     "payment_method_type_id" INTEGER,
     "currency_id" INTEGER,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "invoice_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customer" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "invoice_branch_office_id_fkey" FOREIGN KEY ("branch_office_id") REFERENCES "branch_office" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "invoice_point_sale_id_fkey" FOREIGN KEY ("point_sale_id") REFERENCES "point_sale" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -433,8 +433,8 @@ CREATE TABLE "invoice_detail" (
     "product_id" INTEGER NOT NULL,
     "products_services_id" INTEGER NOT NULL,
     "unit_measure_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "invoice_detail_invoice_id_fkey" FOREIGN KEY ("invoice_id") REFERENCES "invoice" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -443,8 +443,8 @@ CREATE TABLE "invoice_sale" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "invoice_id" INTEGER NOT NULL,
     "sale_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "invoice_sale_invoice_id_fkey" FOREIGN KEY ("invoice_id") REFERENCES "invoice" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "invoice_sale_sale_id_fkey" FOREIGN KEY ("sale_id") REFERENCES "sale" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -453,14 +453,14 @@ CREATE TABLE "invoice_sale" (
 CREATE TABLE "cuis" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "code" TEXT NOT NULL,
-    "start_date" DATETIME NOT NULL,
-    "effective_date" DATETIME NOT NULL,
+    "start_date" TIMESTAMPTZ(3) NOT NULL,
+    "effective_date" TIMESTAMPTZ(3) NOT NULL,
     "transaction" BOOLEAN NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
     "point_sale_id" INTEGER NOT NULL,
     "branch_office_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "cuis_point_sale_id_fkey" FOREIGN KEY ("point_sale_id") REFERENCES "point_sale" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "cuis_branch_office_id_fkey" FOREIGN KEY ("branch_office_id") REFERENCES "branch_office" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -471,10 +471,10 @@ CREATE TABLE "cufd" (
     "code" TEXT NOT NULL,
     "control_code" TEXT NOT NULL,
     "address" TEXT NOT NULL,
-    "start_date" DATETIME NOT NULL,
-    "effective_date" DATETIME NOT NULL,
-    "effective_date2" DATETIME NOT NULL,
-    "effective_date3" DATETIME NOT NULL,
+    "start_date" TIMESTAMPTZ(3) NOT NULL,
+    "effective_date" TIMESTAMPTZ(3) NOT NULL,
+    "effective_date2" TIMESTAMPTZ(3) NOT NULL,
+    "effective_date3" TIMESTAMPTZ(3) NOT NULL,
     "transaction" BOOLEAN NOT NULL,
     "state" INTEGER NOT NULL DEFAULT 1,
     "state2" INTEGER NOT NULL DEFAULT 1,
@@ -482,8 +482,8 @@ CREATE TABLE "cufd" (
     "cuis_id" INTEGER NOT NULL,
     "point_sale_id" INTEGER NOT NULL,
     "branch_office_id" INTEGER NOT NULL,
-    "created_at" DATETIME,
-    "updated_at" DATETIME,
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3),
     CONSTRAINT "cufd_cuis_id_fkey" FOREIGN KEY ("cuis_id") REFERENCES "cuis" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "cufd_point_sale_id_fkey" FOREIGN KEY ("point_sale_id") REFERENCES "point_sale" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "cufd_branch_office_id_fkey" FOREIGN KEY ("branch_office_id") REFERENCES "branch_office" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -496,8 +496,8 @@ CREATE TABLE "user" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -506,8 +506,8 @@ CREATE TABLE "role" (
     "name" TEXT NOT NULL,
     "description" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" DATETIME,
-    "updated_at" DATETIME
+    "created_at" TIMESTAMPTZ(3),
+    "updated_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
@@ -518,7 +518,7 @@ CREATE TABLE "permission" (
     "module" TEXT,
     "action" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" DATETIME
+    "created_at" TIMESTAMPTZ(3)
 );
 
 -- CreateTable
